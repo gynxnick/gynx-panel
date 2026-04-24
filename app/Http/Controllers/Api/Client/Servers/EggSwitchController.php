@@ -79,11 +79,11 @@ class EggSwitchController extends ClientApiController
     /**
      * GET /servers/{server}/egg-switch/status/{log}
      */
-    public function status(ClientApiRequest $request, Server $server, int $logId): JsonResponse
+    public function status(ClientApiRequest $request, Server $server, int $log): JsonResponse
     {
         $log = EggSwitchLog::query()
             ->where('server_id', $server->id)
-            ->where('id', $logId)
+            ->where('id', $log)
             ->firstOrFail();
 
         return new JsonResponse([

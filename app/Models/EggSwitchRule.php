@@ -40,6 +40,12 @@ class EggSwitchRule extends Model
         'enabled' => 'required|boolean',
     ];
 
+    /** Route-bind by primary key, not uuid (no uuid column on this table). */
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
+
     public function sourceEgg(): BelongsTo
     {
         return $this->belongsTo(Egg::class, 'source_egg_id');

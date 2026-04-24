@@ -54,6 +54,12 @@ class EggSwitchLog extends Model
         'error' => 'nullable|string',
     ];
 
+    /** Route-bind by primary key, not uuid. */
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
+
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class, 'server_id');
