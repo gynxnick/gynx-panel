@@ -10,6 +10,7 @@ import {
     faAngleDoubleRight,
     faCogs,
     faHome,
+    faSearch,
     faSignOutAlt,
     faUser,
     IconDefinition,
@@ -20,7 +21,8 @@ import { ApplicationStore } from '@/state';
 import http from '@/api/http';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import Tooltip from '@/components/elements/tooltip/Tooltip';
-import SearchContainer from '@/components/dashboard/search/SearchContainer';
+import SearchModal from '@/components/dashboard/search/SearchModal';
+import useEventListener from '@/plugins/useEventListener';
 import LogoMark from '@/components/gynx/LogoMark';
 import routes, { ServerNavGroup } from '@/routers/routes';
 
@@ -124,6 +126,7 @@ const itemBase = css`
     border: 0;
     background: transparent;
     text-align: left;
+    pointer-events: auto;
 
     /* Hover = blue tint (per brand rule: blue = secondary interaction) */
     &:hover {
@@ -280,6 +283,18 @@ export default () => {
         });
     };
 
+    // Search modal — own the state here so the trigger matches sidebar item
+    // styling (stock SearchContainer rendered its own top-nav chrome).
+    const [searchOpen, setSearchOpen] = useState(false);
+    useEventListener('keydown', (e: KeyboardEvent) => {
+        const target = e.target as HTMLElement | null;
+        if (['input', 'textarea'].indexOf((target?.tagName || 'input').toLowerCase()) < 0) {
+            if (!searchOpen && e.metaKey && e.key.toLowerCase() === '/') {
+                setSearchOpen(true);
+            }
+        }
+    });
+
     // Pre-filter the server tabs into their groups so we don't map the whole
     // array four times in the render.
     const serverGroupedItems = useMemo(() => {
@@ -308,13 +323,22 @@ export default () => {
                 {/* global nav */}
                 <div style={{ paddingTop: 4, paddingBottom: 4 }}>
                     <InternalLink icon={faHome} label={'Dashboard'} to={'/'} exact collapsed={collapsed} />
-                    <div style={{ margin: '4px 8px' }}>
-                        {/* SearchContainer renders its own trigger + modal */}
-                        <SearchContainer />
-                    </div>
+                    <ActionButton
+                        icon={faSearch}
+                        label={'Search'}
+                        collapsed={collapsed}
+                        onClick={() => setSearchOpen(true)}
+                        ariaLabel={'search'}
+                    />
                     {rootAdmin && <ExternalLink icon={faCogs} label={'Admin'} href={'/admin'} collapsed={collapsed} />}
                     <InternalLink icon={faUser} label={'Account'} to={'/account'} collapsed={collapsed} />
                 </div>
+
+                {/* Search modal portal — own it here so the trigger lives
+                    in-line with the other sidebar items. */}
+                {searchOpen && (
+                    <SearchModal appear visible={searchOpen} onDismissed={() => setSearchOpen(false)} />
+                )}
 
                 {/* contextual: server tabs */}
                 {serverMatch && (
