@@ -13,18 +13,39 @@ import { Alert } from '@/components/elements/alert';
 
 export type PowerAction = 'start' | 'stop' | 'restart' | 'kill';
 
+/**
+ * gynx — redesigned Server Console page.
+ *
+ * New layout (desktop):
+ *
+ *   ┌────────────────────────────────────┐ ┌────────────────┐
+ *   │                                    │ │                │
+ *   │       TERMINAL (xterm)             │ │  POWER ACTIONS │
+ *   │                                    │ ├────────────────┤
+ *   │                                    │ │  STAT TILES    │
+ *   │                                    │ │  (6 tiles      │
+ *   │                                    │ │   stacked)     │
+ *   └────────────────────────────────────┘ └────────────────┘
+ *   ┌──────────┬──────────┬──────────┐
+ *   │ CPU      │ MEMORY   │ NETWORK  │
+ *   │ chart    │ chart    │ chart    │
+ *   └──────────┴──────────┴──────────┘
+ *
+ * The server name / description / status are now in the TopBar (rendered by
+ * ServerRouter), so this page is all data. No duplicate heading.
+ */
 const ServerConsoleContainer = () => {
-    const name = ServerContext.useStoreState((state) => state.server.data!.name);
-    const description = ServerContext.useStoreState((state) => state.server.data!.description);
     const isInstalling = ServerContext.useStoreState((state) => state.server.isInstalling);
     const isTransferring = ServerContext.useStoreState((state) => state.server.data!.isTransferring);
     const eggFeatures = ServerContext.useStoreState((state) => state.server.data!.eggFeatures, isEqual);
     const isNodeUnderMaintenance = ServerContext.useStoreState((state) => state.server.data!.isNodeUnderMaintenance);
 
+    const showBanner = isNodeUnderMaintenance || isInstalling || isTransferring;
+
     return (
         <ServerContentBlock title={'Console'}>
-            {(isNodeUnderMaintenance || isInstalling || isTransferring) && (
-                <Alert type={'warning'} className={'mb-4'}>
+            {showBanner && (
+                <Alert type={'warning'} className={'mb-6'}>
                     {isNodeUnderMaintenance
                         ? 'The node of this server is currently under maintenance and all actions are unavailable.'
                         : isInstalling
@@ -32,30 +53,29 @@ const ServerConsoleContainer = () => {
                         : 'This server is currently being transferred to another node and all actions are unavailable.'}
                 </Alert>
             )}
-            <div className={'grid grid-cols-4 gap-4 mb-4'}>
-                <div className={'hidden sm:block sm:col-span-2 lg:col-span-3 pr-4'}>
-                    <h1 className={'font-header text-2xl text-gray-50 leading-relaxed line-clamp-1'}>{name}</h1>
-                    <p className={'text-sm line-clamp-2'}>{description}</p>
-                </div>
-                <div className={'col-span-4 sm:col-span-2 lg:col-span-1 self-end'}>
-                    <Can action={['control.start', 'control.stop', 'control.restart']} matchAny>
-                        <PowerButtons className={'flex sm:justify-end space-x-2'} />
-                    </Can>
-                </div>
-            </div>
-            <div className={'grid grid-cols-4 gap-2 sm:gap-4 mb-4'}>
-                <div className={'flex col-span-4 lg:col-span-3'}>
+
+            {/* Terminal + right-hand control column */}
+            <div className={'grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6'}>
+                <div className={'lg:col-span-3 min-w-0'}>
                     <Spinner.Suspense>
                         <Console />
                     </Spinner.Suspense>
                 </div>
-                <ServerDetailsBlock className={'col-span-4 lg:col-span-1 order-last lg:order-none'} />
+                <div className={'lg:col-span-1 flex flex-col gap-4'}>
+                    <Can action={['control.start', 'control.stop', 'control.restart']} matchAny>
+                        <PowerButtons className={'grid grid-cols-3 gap-2'} />
+                    </Can>
+                    <ServerDetailsBlock />
+                </div>
             </div>
-            <div className={'grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4'}>
+
+            {/* Live charts row */}
+            <div className={'grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'}>
                 <Spinner.Suspense>
                     <StatGraphs />
                 </Spinner.Suspense>
             </div>
+
             <Features enabled={eggFeatures} />
         </ServerContentBlock>
     );
