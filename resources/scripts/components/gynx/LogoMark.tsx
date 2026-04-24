@@ -1,10 +1,5 @@
 import React from 'react';
-
-// Bundled default logo. Webpack file-loader rewrites this to a hashed
-// path under /assets/images/. When the admin sets Branding → Logo URL
-// to a custom URL, that wins; otherwise this default ships.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const DEFAULT_LOGO_URL: string = require('@/assets/brand/gynx-logo.png');
+import GynxLogo from '@/assets/brand/gynx-logo.png';
 
 interface Props {
     size?: number;
@@ -13,19 +8,18 @@ interface Props {
      * Optional hosted logo URL. When set, renders that image. Upstream
      * source is `state.settings.data.branding.logoUrl`, which is pushed
      * through window.SiteConfiguration from wrapper.blade.php. Fallback
-     * is the bundled gynx logo below.
+     * is the bundled gynx logo above.
      */
     url?: string | null;
     alt?: string;
 }
 
 /**
- * gynx.gg wordmark / monogram. Admin-configurable URL overrides the
- * bundled default; everything else about placement + sizing stays the
- * same.
+ * gynx.gg logo lockup. Bundled webpack asset by default; admin can
+ * override with any URL via Branding → Logo URL in /admin/branding.
  */
 export default ({ size = 36, className, url, alt = 'gynx.gg' }: Props) => {
-    const src = url && url.trim() !== '' ? url : DEFAULT_LOGO_URL;
+    const src = url && url.trim() !== '' ? url : (GynxLogo as unknown as string);
 
     return (
         <img
