@@ -139,4 +139,11 @@ Route::group([
         Route::post('/reinstall', [Client\Servers\SettingsController::class, 'reinstall']);
         Route::put('/docker-image', [Client\Servers\SettingsController::class, 'dockerImage']);
     });
+
+    Route::group(['prefix' => '/egg-switch'], function () {
+        Route::get('/options', [Client\Servers\EggSwitchController::class, 'options']);
+        Route::post('/preview', [Client\Servers\EggSwitchController::class, 'preview']);
+        Route::post('/', [Client\Servers\EggSwitchController::class, 'request']);
+        Route::get('/status/{log}', [Client\Servers\EggSwitchController::class, 'status']);
+    });
 });

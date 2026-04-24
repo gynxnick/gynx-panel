@@ -10,6 +10,7 @@ import {
     faSlidersH,
     faCog,
     faHistory,
+    faGamepad,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -22,6 +23,7 @@ import NetworkContainer from '@/components/server/network/NetworkContainer';
 import StartupContainer from '@/components/server/startup/StartupContainer';
 import FileManagerContainer from '@/components/server/files/FileManagerContainer';
 import SettingsContainer from '@/components/server/settings/SettingsContainer';
+import EggSwitcherContainer from '@/components/server/egg-switch/EggSwitcherContainer';
 import AccountOverviewContainer from '@/components/dashboard/AccountOverviewContainer';
 import AccountApiContainer from '@/components/dashboard/AccountApiContainer';
 import AccountSSHContainer from '@/components/dashboard/ssh/AccountSSHContainer';
@@ -82,6 +84,7 @@ export default {
         { path: '/activity',  permission: 'activity.*', name: 'Activity',  icon: faHistory,      group: 'monitoring', component: ServerActivityLogContainer },
 
         // Config
+        { path: '/game',      permission: 'control.egg-switch', name: 'Game', icon: faGamepad, group: 'config', component: EggSwitcherContainer },
         { path: '/users',     permission: 'user.*',     name: 'Users',     icon: faUsers,        group: 'config',     component: UsersContainer },
         { path: '/network',   permission: 'allocation.*', name: 'Network', icon: faNetworkWired, group: 'config',     component: NetworkContainer },
         { path: '/startup',   permission: 'startup.*',  name: 'Startup',   icon: faSlidersH,     group: 'config',     component: StartupContainer },
