@@ -54,16 +54,13 @@ yarn watch           # rebuild on change
 
 ```bash
 yarn install
-
-# webpack 4 uses MD4 for chunk hashing, which OpenSSL 3 (Node 17+) removed.
-# The flag below restores the legacy provider. Applies to Node 18 and Node 20
-# alike — it's a webpack version thing, not a Node version thing.
-export NODE_OPTIONS=--openssl-legacy-provider
-
 yarn build:production
 ```
 
-If you're running the build through `sudo`, pass `-E` so the env var survives: `sudo -E yarn build:production`.
+The `NODE_OPTIONS=--openssl-legacy-provider` flag is now baked into every
+webpack script via `cross-env`, so Node 18 / 20 hosts build cleanly out of
+the box. (Webpack 4 uses MD4 for chunk hashing and OpenSSL 3 removed that
+provider — the legacy flag restores it.)
 
 Output lands in `public/assets/` (the webpack manifest plus hashed bundle files). That directory is what the installer ships to the live panel.
 
