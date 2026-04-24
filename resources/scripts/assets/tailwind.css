@@ -1,3 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =========================================================================
+ * gynx.gg — global layer
+ * ========================================================================= */
+
+@layer base {
+    :root {
+        --gynx-void:      #0B0B0F;
+        --gynx-void-2:    #101018;
+        --gynx-slate:     #1F2937;
+        --gynx-slate-2:   #2A2F3E;
+        --gynx-purple:    #7C3AED;
+        --gynx-purple-2:  #9B5BFF;
+        --gynx-neon:      #22D3EE;
+        --gynx-pink:      #EC4899;
+        --gynx-text:      #E5E7EB;
+        --gynx-text-dim:  #9CA3AF;
+        --gynx-line:      rgba(124, 58, 237, 0.18);
+        --gynx-line-soft: rgba(156, 163, 175, 0.08);
+
+        --gynx-glow-purple: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 8px 28px -8px rgba(124, 58, 237, 0.55);
+    }
+
+    html, body {
+        background: var(--gynx-void);
+        color: var(--gynx-text);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: 'cv02', 'cv03', 'cv11', 'ss01';
+    }
+
+    body {
+        position: relative;
+        isolation: isolate;
+        min-height: 100vh;
+    }
+
+    /* ambient gradient field — permanent canvas behind the app */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background:
+            radial-gradient(900px 600px at 12% -10%, rgba(124, 58, 237, 0.28), transparent 60%),
+            radial-gradient(1000px 700px at 110% 10%, rgba(34, 211, 238, 0.16), transparent 60%),
+            radial-gradient(700px 500px at 50% 120%, rgba(236, 72, 153, 0.08), transparent 60%),
+            var(--gynx-void);
+        pointer-events: none;
+    }
+
+    /* subtle grid — masked off at the edges */
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image:
+            linear-gradient(rgba(156, 163, 175, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(156, 163, 175, 0.035) 1px, transparent 1px);
+        background-size: 48px 48px;
+        mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+        -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+        pointer-events: none;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Space Grotesk', 'Inter', sans-serif;
+        letter-spacing: -0.01em;
+        color: var(--gynx-text);
+    }
+
+    /* scrollbars */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(124, 58, 237, 0.5), rgba(34, 211, 238, 0.5));
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #7C3AED, #22D3EE);
+        background-clip: padding-box;
+    }
+}
+
+@layer components {
+    /* -- glass panel -- */
+    .gynx-panel {
+        @apply bg-gynx-slate/70 border border-gynx-line rounded-gynx backdrop-blur-md;
+        box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+    }
+
+    .gynx-panel-lg {
+        @apply bg-gynx-slate/70 border border-gynx-line rounded-gynx-lg backdrop-blur-md;
+    }
+
+    /* -- section heading -- */
+    .gynx-eyebrow {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 10px;
+        letter-spacing: 0.24em;
+        text-transform: lowercase;
+        color: var(--gynx-text-dim);
+        font-weight: 500;
+    }
+
+    /* -- button presets -- */
+    .gynx-btn-primary {
+        @apply inline-flex items-center justify-center px-4 py-2 rounded-gynx-sm font-medium text-white;
+        background: linear-gradient(135deg, #7C3AED, #9B5BFF);
+        border: 1px solid rgba(155, 91, 255, 0.55);
+        box-shadow: 0 4px 20px -6px rgba(124, 58, 237, 0.65);
+        transition: transform .15s ease, box-shadow .25s ease, background .2s ease;
+    }
+    .gynx-btn-primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #8B4BF0, #AC74FF);
+        box-shadow: 0 8px 30px -6px rgba(155, 91, 255, 0.8), 0 0 0 1px rgba(155, 91, 255, 0.7);
+        transform: translateY(-1px);
+    }
+    .gynx-btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .gynx-btn-ghost {
+        @apply inline-flex items-center justify-center px-4 py-2 rounded-gynx-sm font-medium;
+        background: transparent;
+        border: 1px solid rgba(156, 163, 175, 0.22);
+        color: var(--gynx-text);
+        transition: background .2s ease, border-color .2s ease;
+    }
+    .gynx-btn-ghost:hover:not(:disabled) {
+        background: rgba(124, 58, 237, 0.1);
+        border-color: var(--gynx-purple);
+    }
+
+    .gynx-btn-danger {
+        @apply inline-flex items-center justify-center px-4 py-2 rounded-gynx-sm font-medium text-white;
+        background: linear-gradient(135deg, #DC2626, #EF4444);
+        border: 1px solid rgba(239, 68, 68, 0.55);
+    }
+    .gynx-btn-danger:hover:not(:disabled) {
+        background: linear-gradient(135deg, #E12D2D, #F25252);
+    }
+
+    /* -- status pill -- */
+    .gynx-pill {
+        @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+        letter-spacing: 0.04em;
+    }
+
+    .gynx-pill::before {
+        content: '';
+        width: 6px; height: 6px; border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 8px currentColor;
+    }
+}

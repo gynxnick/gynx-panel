@@ -1,11 +1,22 @@
+/*
+ * gynx — button system.
+ *
+ * The Button component's three variants (primary/text/danger) all go through
+ * here. By restyling this file we pick up every <Button> across the panel —
+ * PowerButtons, dialog confirms, form submits, etc. — without touching their
+ * call sites.
+ */
+
 .button {
     @apply px-4 py-2 inline-flex items-center justify-center;
-    @apply rounded text-base font-semibold transition-all duration-100;
-    @apply focus:ring-[3px] focus:ring-offset-2 focus:ring-offset-gray-700 focus:ring-opacity-50;
+    @apply rounded-gynx-sm text-sm font-medium transition-all duration-150;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gynx-void focus:ring-opacity-60;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
 
-    /* Sizing Controls */
+    /* Sizing controls */
     &.small {
-        @apply px-4 py-0 h-8 font-normal text-sm focus:ring-2;
+        @apply px-3 py-0 h-8 text-xs focus:ring-2;
     }
 
     &.large {
@@ -13,7 +24,8 @@
     }
 
     &.secondary {
-        @apply text-gray-50 bg-transparent;
+        @apply bg-transparent text-gynx-text;
+        border-color: rgba(156, 163, 175, 0.22);
 
         &:disabled {
             background: transparent !important;
@@ -21,7 +33,7 @@
     }
 
     &:disabled {
-        @apply cursor-not-allowed;
+        @apply cursor-not-allowed opacity-50;
     }
 
     &.square {
@@ -33,41 +45,108 @@
     }
 }
 
+/* -- primary: gynx purple gradient ---------------------------------------- */
 .primary {
-    @apply bg-blue-600 text-blue-50;
-    @apply hover:bg-blue-500 active:bg-blue-500 focus:ring-blue-400 focus:ring-opacity-75;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #7C3AED, #9B5BFF);
+    border-color: rgba(155, 91, 255, 0.55);
+    box-shadow: 0 4px 20px -8px rgba(124, 58, 237, 0.65);
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+        background: linear-gradient(135deg, #8B4BF0, #AC74FF);
+        box-shadow: 0 8px 30px -6px rgba(155, 91, 255, 0.8), 0 0 0 1px rgba(155, 91, 255, 0.7);
+        transform: translateY(-1px);
+    }
+
+    &:focus {
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35), 0 8px 30px -6px rgba(155, 91, 255, 0.8);
+    }
 
     &.secondary {
-        @apply hover:bg-blue-600 active:bg-blue-600;
+        background: transparent;
+        color: #C4B5FD;
+        border-color: rgba(124, 58, 237, 0.5);
+
+        &:hover:not(:disabled),
+        &:active:not(:disabled) {
+            background: rgba(124, 58, 237, 0.12);
+            border-color: #7C3AED;
+            color: #fff;
+        }
     }
 
     &:disabled {
-        @apply bg-blue-500/75 text-blue-200/75;
+        background: linear-gradient(135deg, #7C3AED, #9B5BFF);
+        color: rgba(255, 255, 255, 0.7);
     }
 }
 
+/* -- text: neutral ghost --------------------------------------------------- */
 .text {
-    @apply bg-gray-500 text-gray-50;
-    @apply hover:bg-gray-400 active:bg-gray-400 focus:ring-gray-300 focus:ring-opacity-50;
+    color: var(--gynx-text);
+    background: rgba(31, 41, 55, 0.6);
+    border-color: rgba(156, 163, 175, 0.18);
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+        background: rgba(124, 58, 237, 0.15);
+        border-color: rgba(124, 58, 237, 0.5);
+        color: #fff;
+    }
+
+    &:focus {
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28);
+    }
 
     &.secondary {
-        @apply hover:bg-gray-500 active:bg-gray-500;
+        background: transparent;
+
+        &:hover:not(:disabled),
+        &:active:not(:disabled) {
+            background: rgba(124, 58, 237, 0.1);
+        }
     }
 
     &:disabled {
-        @apply bg-gray-500/75 text-gray-200/75;
+        background: rgba(31, 41, 55, 0.4);
+        color: rgba(229, 231, 235, 0.5);
     }
 }
 
+/* -- danger: red gradient -------------------------------------------------- */
 .danger {
-    @apply bg-red-600 text-gray-50;
-    @apply hover:bg-red-500 active:bg-red-500 focus:ring-red-400 focus:ring-opacity-75;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #DC2626, #EF4444);
+    border-color: rgba(239, 68, 68, 0.55);
+    box-shadow: 0 4px 20px -8px rgba(239, 68, 68, 0.6);
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+        background: linear-gradient(135deg, #E12D2D, #F25252);
+        box-shadow: 0 8px 30px -6px rgba(239, 68, 68, 0.65), 0 0 0 1px rgba(239, 68, 68, 0.6);
+        transform: translateY(-1px);
+    }
+
+    &:focus {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3);
+    }
 
     &.secondary {
-        @apply hover:bg-red-600 active:bg-red-600;
+        background: transparent;
+        color: #FCA5A5;
+        border-color: rgba(239, 68, 68, 0.45);
+
+        &:hover:not(:disabled),
+        &:active:not(:disabled) {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: #EF4444;
+            color: #fff;
+        }
     }
 
     &:disabled {
-        @apply bg-red-600/75 text-red-50/75;
+        background: linear-gradient(135deg, #DC2626, #EF4444);
+        color: rgba(255, 255, 255, 0.6);
     }
 }

@@ -1,7 +1,6 @@
 import TransferListener from '@/components/server/TransferListener';
 import React, { useEffect, useState } from 'react';
 import { NavLink, Route, Switch, useRouteMatch } from 'react-router-dom';
-import NavigationBar from '@/components/NavigationBar';
 import TransitionRouter from '@/TransitionRouter';
 import WebsocketHandler from '@/components/server/WebsocketHandler';
 import { ServerContext } from '@/state/server';
@@ -20,6 +19,8 @@ import { useLocation } from 'react-router';
 import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
 import PermissionRoute from '@/components/elements/PermissionRoute';
 import routes from '@/routers/routes';
+import AppShell from '@/components/gynx/AppShell';
+import TopBar from '@/components/gynx/TopBar';
 
 export default () => {
     const match = useRouteMatch<{ id: string }>();
@@ -62,67 +63,68 @@ export default () => {
         };
     }, [match.params.id]);
 
-    return (
-        <React.Fragment key={'server-router'}>
-            <NavigationBar />
-            {!uuid || !id ? (
-                error ? (
-                    <ServerError message={error} />
-                ) : (
-                    <Spinner size={'large'} centered />
-                )
-            ) : (
-                <>
-                    <CSSTransition timeout={150} classNames={'fade'} appear in>
-                        <SubNavigation>
-                            <div>
-                                {routes.server
-                                    .filter((route) => !!route.name)
-                                    .map((route) =>
-                                        route.permission ? (
-                                            <Can key={route.path} action={route.permission} matchAny>
-                                                <NavLink to={to(route.path, true)} exact={route.exact}>
-                                                    {route.name}
-                                                </NavLink>
-                                            </Can>
-                                        ) : (
-                                            <NavLink key={route.path} to={to(route.path, true)} exact={route.exact}>
-                                                {route.name}
-                                            </NavLink>
-                                        )
-                                    )}
-                                {rootAdmin && (
-                                    // eslint-disable-next-line react/jsx-no-target-blank
-                                    <a href={`/admin/servers/view/${serverId}`} target={'_blank'}>
-                                        <FontAwesomeIcon icon={faExternalLinkAlt} />
-                                    </a>
-                                )}
-                            </div>
-                        </SubNavigation>
-                    </CSSTransition>
-                    <InstallListener />
-                    <TransferListener />
-                    <WebsocketHandler />
-                    {inConflictState && (!rootAdmin || (rootAdmin && !location.pathname.endsWith(`/server/${id}`))) ? (
-                        <ConflictStateRenderer />
-                    ) : (
-                        <ErrorBoundary>
-                            <TransitionRouter>
-                                <Switch location={location}>
-                                    {routes.server.map(({ path, permission, component: Component }) => (
-                                        <PermissionRoute key={path} permission={permission} path={to(path)} exact>
-                                            <Spinner.Suspense>
-                                                <Component />
-                                            </Spinner.Suspense>
-                                        </PermissionRoute>
-                                    ))}
-                                    <Route path={'*'} component={NotFound} />
-                                </Switch>
-                            </TransitionRouter>
-                        </ErrorBoundary>
+    // Server-not-yet-loaded state: render shell with a spinner in content slot.
+    if (!uuid || !id) {
+        return (
+            <AppShell>
+                {error ? <ServerError message={error} /> : <Spinner size={'large'} centered />}
+            </AppShell>
+        );
+    }
+
+    const tabs = (
+        <CSSTransition timeout={150} classNames={'fade'} appear in>
+            <SubNavigation>
+                <div>
+                    {routes.server
+                        .filter((route) => !!route.name)
+                        .map((route) =>
+                            route.permission ? (
+                                <Can key={route.path} action={route.permission} matchAny>
+                                    <NavLink to={to(route.path, true)} exact={route.exact}>
+                                        {route.name}
+                                    </NavLink>
+                                </Can>
+                            ) : (
+                                <NavLink key={route.path} to={to(route.path, true)} exact={route.exact}>
+                                    {route.name}
+                                </NavLink>
+                            )
+                        )}
+                    {rootAdmin && (
+                        // eslint-disable-next-line react/jsx-no-target-blank
+                        <a href={`/admin/servers/view/${serverId}`} target={'_blank'}>
+                            <FontAwesomeIcon icon={faExternalLinkAlt} />
+                        </a>
                     )}
-                </>
+                </div>
+            </SubNavigation>
+        </CSSTransition>
+    );
+
+    return (
+        <AppShell header={<TopBar.Server />} tabs={tabs}>
+            <InstallListener />
+            <TransferListener />
+            <WebsocketHandler />
+            {inConflictState && (!rootAdmin || (rootAdmin && !location.pathname.endsWith(`/server/${id}`))) ? (
+                <ConflictStateRenderer />
+            ) : (
+                <ErrorBoundary>
+                    <TransitionRouter>
+                        <Switch location={location}>
+                            {routes.server.map(({ path, permission, component: Component }) => (
+                                <PermissionRoute key={path} permission={permission} path={to(path)} exact>
+                                    <Spinner.Suspense>
+                                        <Component />
+                                    </Spinner.Suspense>
+                                </PermissionRoute>
+                            ))}
+                            <Route path={'*'} component={NotFound} />
+                        </Switch>
+                    </TransitionRouter>
+                </ErrorBoundary>
             )}
-        </React.Fragment>
+        </AppShell>
     );
 };
