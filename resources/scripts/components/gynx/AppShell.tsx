@@ -6,13 +6,15 @@ import Sidebar from '@/components/gynx/Sidebar';
 /**
  * gynx.gg — app shell
  *
- * Two-column layout: persistent icon-rail sidebar + main content column.
- * Mobile: rail collapses to a thin bar at the top (handled via media query).
+ * Two-column layout: the wide Sidebar (owns ALL navigation — global +
+ * contextual server/account tabs) and a main content column. The sidebar
+ * collapses to 64px on demand and hides entirely on narrow viewports.
  *
  * The main column hosts:
  *   - TopBar / page-header (rendered by the caller as `header` slot)
- *   - optional tab strip (rendered by the caller as `tabs` slot)
  *   - children = the actual route content
+ *
+ * The `tabs` slot from session 2 is gone — the Sidebar handles tabs now.
  */
 
 const Shell = styled.div`
@@ -26,17 +28,9 @@ const Main = styled.div`
 const TopStrip = styled.header`
     ${tw`flex-shrink-0 w-full sticky top-0 z-10`};
     background: linear-gradient(180deg, rgba(15, 17, 26, 0.85), rgba(11, 11, 15, 0.5));
-    border-bottom: 1px solid var(--gynx-edge-2);
+    border-bottom: 1px solid var(--gynx-edge);
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
-`;
-
-const TabStrip = styled.div`
-    ${tw`flex-shrink-0 w-full`};
-    background: rgba(15, 17, 26, 0.55);
-    border-bottom: 1px solid var(--gynx-edge);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 `;
 
 const Content = styled.main`
@@ -45,16 +39,14 @@ const Content = styled.main`
 
 interface Props {
     header?: React.ReactNode;
-    tabs?: React.ReactNode;
     children: React.ReactNode;
 }
 
-export default ({ header, tabs, children }: Props) => (
+export default ({ header, children }: Props) => (
     <Shell>
         <Sidebar />
         <Main>
             {header && <TopStrip>{header}</TopStrip>}
-            {tabs && <TabStrip>{tabs}</TabStrip>}
             <Content>{children}</Content>
         </Main>
     </Shell>

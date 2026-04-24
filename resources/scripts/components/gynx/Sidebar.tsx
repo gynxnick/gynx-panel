@@ -1,106 +1,277 @@
 import * as React from 'react';
-import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { useStoreState } from 'easy-peasy';
-import styled from 'styled-components/macro';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, NavLink, useLocation, useRouteMatch } from 'react-router-dom';
+import styled, { css } from 'styled-components/macro';
 import tw from 'twin.macro';
+import { useStoreState } from 'easy-peasy';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCogs, faHome, faSignOutAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import {
+    faAngleDoubleLeft,
+    faAngleDoubleRight,
+    faCogs,
+    faHome,
+    faSignOutAlt,
+    faUser,
+    IconDefinition,
+} from '@fortawesome/free-solid-svg-icons';
+import Can from '@/components/elements/Can';
+
 import { ApplicationStore } from '@/state';
 import http from '@/api/http';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import Tooltip from '@/components/elements/tooltip/Tooltip';
 import SearchContainer from '@/components/dashboard/search/SearchContainer';
 import LogoMark from '@/components/gynx/LogoMark';
+import routes, { ServerNavGroup } from '@/routers/routes';
 
 /**
- * gynx.gg — left-rail sidebar
+ * gynx.gg — left sidebar v3
  *
- * A persistent 72px icon-rail that replaces the stock top-nav NavigationBar.
- * Context-agnostic: shows the same global actions (dashboard / admin / account /
- * sign-out) everywhere. Sub-navigation (server tabs, account tabs) lives in the
- * TopBar tab strip, not here.
+ * Wide (240px) / collapsed (64px) navigation rail. Owns ALL navigation —
+ * global links (Home, Search, Admin, Account) at the top, contextual tabs
+ * (server or account) in the middle, Sign Out at the bottom.
+ *
+ * Collapsed state is persisted to localStorage so navigation doesn't whiplash
+ * between page loads. On narrow screens the whole sidebar hides until md+.
+ *
+ * Brand rules applied:
+ *   - Active item = purple tint + purple left-accent bar.
+ *   - Hover     = blue tint.
+ *   - Inactive  = dim gray text, no background.
+ *   - No default glow anywhere.
  */
 
-const Rail = styled.aside`
-    ${tw`flex-shrink-0 flex flex-col items-center py-4 z-20`};
-    width: 72px;
+const EXPANDED_WIDTH = 240;
+const COLLAPSED_WIDTH = 64;
+const STORAGE_KEY = 'gynx.sidebar.collapsed';
+
+const GROUP_ORDER: ServerNavGroup[] = ['management', 'monitoring', 'config'];
+const GROUP_LABELS: Record<ServerNavGroup, string> = {
+    management: 'manage',
+    monitoring: 'monitor',
+    config: 'config',
+};
+
+// ----- styled scaffolding ---------------------------------------------------
+
+const Rail = styled.aside<{ $collapsed: boolean }>`
+    ${tw`hidden md:flex flex-shrink-0 flex-col z-20 h-screen sticky top-0`};
+    width: ${({ $collapsed }) => ($collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH)}px;
     background: var(--gynx-surface-2);
     border-right: 1px solid var(--gynx-edge);
+    transition: width .22s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 `;
 
-const NavItem = styled(NavLink)`
-    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-lg text-gynx-text-dim relative`};
-    transition: color .2s ease, background .2s ease;
-
-    /* Hover on inactive: soft neutral so cyan-for-active reads cleanly */
-    &:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.04);
-    }
-
-    /* Active = cyan pill. Purple is reserved for actions (buttons);
-       state uses blue. */
-    &.active {
-        color: #fff;
-        background: rgba(34, 211, 238, 0.16);
-        box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.45);
-    }
-
-    /* Left accent — only when active. Cyan, solid, no outer glow. */
-    &.active::before {
-        content: '';
-        position: absolute;
-        left: -12px;
-        top: 10px;
-        bottom: 10px;
-        width: 2px;
-        border-radius: 2px;
-        background: var(--gynx-blue);
-    }
+const Scroll = styled.div`
+    ${tw`flex-1 overflow-y-auto overflow-x-hidden`};
+    &::-webkit-scrollbar { width: 6px; }
 `;
 
-const NavAction = styled.button`
-    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-lg text-gynx-text-dim bg-transparent border-0 cursor-pointer`};
-    transition: color .2s ease, background .2s ease;
-
-    &:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.04);
-    }
+const BrandRow = styled.div<{ $collapsed: boolean }>`
+    ${tw`flex items-center px-4 py-4`};
+    gap: 12px;
+    min-height: 64px;
 `;
 
-const NavExternalLink = styled.a`
-    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-lg text-gynx-text-dim no-underline`};
-    transition: color .2s ease, background .2s ease;
+const BrandWordmark = styled.span<{ $collapsed: boolean }>`
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    color: var(--gynx-text);
+    opacity: ${({ $collapsed }) => ($collapsed ? 0 : 1)};
+    transform: ${({ $collapsed }) => ($collapsed ? 'translateX(-4px)' : 'translateX(0)')};
+    transition: opacity .18s ease, transform .2s ease;
+    white-space: nowrap;
+    pointer-events: ${({ $collapsed }) => ($collapsed ? 'none' : 'auto')};
+`;
 
-    &:hover {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.04);
-    }
+const EyebrowRow = styled.div<{ $collapsed: boolean }>`
+    ${tw`px-4 pt-5 pb-1`};
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: lowercase;
+    color: var(--gynx-text-mute);
+    font-weight: 500;
+    opacity: ${({ $collapsed }) => ($collapsed ? 0 : 1)};
+    height: ${({ $collapsed }) => ($collapsed ? 14 : 24)}px;
+    transition: opacity .18s ease, height .2s ease;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
 `;
 
 const Divider = styled.div`
-    ${tw`w-8 my-3`};
+    margin: 8px 16px;
     height: 1px;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
 `;
 
-const BrandLink = styled(Link)`
-    ${tw`mb-4 block no-underline`};
-    transition: transform .2s ease, filter .25s ease;
+// ----- nav item primitive ---------------------------------------------------
 
+const itemBase = css`
+    ${tw`relative flex items-center no-underline mx-2 px-3 py-2 rounded-lg`};
+    gap: 12px;
+    min-height: 40px;
+    color: var(--gynx-text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: color .18s ease, background .18s ease;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    text-align: left;
+
+    /* Hover = blue tint (per brand rule: blue = secondary interaction) */
     &:hover {
-        transform: scale(1.04);
-        /* Glow is a reward — only reveals on hover */
-        filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.5));
+        color: #fff;
+        background: rgba(34, 211, 238, 0.08);
     }
 `;
 
-export default () => {
-    const rootAdmin = useStoreState((state: ApplicationStore) => state.user.data!.rootAdmin);
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
+const activeCss = css`
+    color: #fff;
+    background: rgba(124, 58, 237, 0.16);
 
+    &::before {
+        content: '';
+        position: absolute;
+        left: -2px;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--gynx-purple);
+    }
+`;
+
+const ItemLink = styled(NavLink)`
+    ${itemBase}
+    &.active {
+        ${activeCss}
+    }
+`;
+
+const ItemButton = styled.button`
+    ${itemBase}
+    width: calc(100% - 16px);
+`;
+
+const ItemExternal = styled.a`
+    ${itemBase}
+`;
+
+const IconCell = styled.span`
+    ${tw`flex items-center justify-center flex-shrink-0`};
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+`;
+
+const LabelCell = styled.span<{ $collapsed: boolean }>`
+    ${tw`flex-1 truncate`};
+    opacity: ${({ $collapsed }) => ($collapsed ? 0 : 1)};
+    transform: ${({ $collapsed }) => ($collapsed ? 'translateX(-4px)' : 'translateX(0)')};
+    transition: opacity .18s ease, transform .2s ease;
+    pointer-events: ${({ $collapsed }) => ($collapsed ? 'none' : 'auto')};
+    white-space: nowrap;
+`;
+
+// ----- inner helpers --------------------------------------------------------
+
+interface ItemProps {
+    icon: IconDefinition;
+    label: string;
+    collapsed: boolean;
+}
+
+const wrapTip = (collapsed: boolean, label: string, node: React.ReactElement) =>
+    collapsed ? (
+        <Tooltip placement={'right'} content={label}>
+            {node}
+        </Tooltip>
+    ) : node;
+
+const InternalLink: React.FC<ItemProps & { to: string; exact?: boolean }> = ({
+    icon,
+    label,
+    collapsed,
+    to,
+    exact,
+}) =>
+    wrapTip(
+        collapsed,
+        label,
+        <ItemLink to={to} exact={exact} activeClassName={'active'}>
+            <IconCell>
+                <FontAwesomeIcon icon={icon} fixedWidth />
+            </IconCell>
+            <LabelCell $collapsed={collapsed}>{label}</LabelCell>
+        </ItemLink>
+    );
+
+const ExternalLink: React.FC<ItemProps & { href: string }> = ({ icon, label, collapsed, href }) =>
+    wrapTip(
+        collapsed,
+        label,
+        <ItemExternal href={href} rel={'noreferrer'}>
+            <IconCell>
+                <FontAwesomeIcon icon={icon} fixedWidth />
+            </IconCell>
+            <LabelCell $collapsed={collapsed}>{label}</LabelCell>
+        </ItemExternal>
+    );
+
+const ActionButton: React.FC<ItemProps & { onClick: () => void; ariaLabel?: string }> = ({
+    icon,
+    label,
+    collapsed,
+    onClick,
+    ariaLabel,
+}) =>
+    wrapTip(
+        collapsed,
+        label,
+        <ItemButton onClick={onClick} aria-label={ariaLabel || label}>
+            <IconCell>
+                <FontAwesomeIcon icon={icon} fixedWidth />
+            </IconCell>
+            <LabelCell $collapsed={collapsed}>{label}</LabelCell>
+        </ItemButton>
+    );
+
+// ----- main component -------------------------------------------------------
+
+export default () => {
+    const location = useLocation();
+    const serverMatch = useRouteMatch<{ id: string }>('/server/:id');
+    const serverUrlBase = serverMatch?.url.replace(/\/$/, '');
+    const inAccount = location.pathname.startsWith('/account');
+
+    const rootAdmin = useStoreState((state: ApplicationStore) => state.user.data?.rootAdmin ?? false);
+    const siteName = useStoreState((state: ApplicationStore) => state.settings.data?.name || 'gynx.gg');
+    const logoUrl = useStoreState((state: ApplicationStore) => state.settings.data?.logoUrl);
+
+    const [collapsed, setCollapsed] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem(STORAGE_KEY) === '1';
+        } catch {
+            return false;
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+        } catch {
+            /* private mode / disabled storage — ignore */
+        }
+    }, [collapsed]);
+
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const onLogout = () => {
         setIsLoggingOut(true);
         http.post('/auth/logout').finally(() => {
@@ -109,51 +280,113 @@ export default () => {
         });
     };
 
+    // Pre-filter the server tabs into their groups so we don't map the whole
+    // array four times in the render.
+    const serverGroupedItems = useMemo(() => {
+        const result: Record<string, typeof routes.server> = {};
+        for (const r of routes.server) {
+            if (!r.name || !serverUrlBase) continue;
+            const g = r.group || 'ungrouped';
+            (result[g] = result[g] || []).push(r);
+        }
+        return result;
+    }, [serverUrlBase]);
+
     return (
-        <Rail aria-label="primary navigation">
+        <Rail $collapsed={collapsed} aria-label={'primary navigation'}>
             <SpinnerOverlay visible={isLoggingOut} />
 
-            <Tooltip placement="right" content="gynx.gg">
-                <BrandLink to="/">
-                    <LogoMark size={40} />
-                </BrandLink>
-            </Tooltip>
+            {/* brand */}
+            <BrandRow $collapsed={collapsed}>
+                <Link to={'/'} style={{ display: 'flex', alignItems: 'center' }}>
+                    <LogoMark size={32} url={logoUrl} />
+                </Link>
+                <BrandWordmark $collapsed={collapsed}>{siteName}</BrandWordmark>
+            </BrandRow>
 
-            <Divider />
+            <Scroll>
+                {/* global nav */}
+                <div style={{ paddingTop: 4, paddingBottom: 4 }}>
+                    <InternalLink icon={faHome} label={'Dashboard'} to={'/'} exact collapsed={collapsed} />
+                    <div style={{ margin: '4px 8px' }}>
+                        {/* SearchContainer renders its own trigger + modal */}
+                        <SearchContainer />
+                    </div>
+                    {rootAdmin && <ExternalLink icon={faCogs} label={'Admin'} href={'/admin'} collapsed={collapsed} />}
+                    <InternalLink icon={faUser} label={'Account'} to={'/account'} collapsed={collapsed} />
+                </div>
 
-            <Tooltip placement="right" content="Dashboard">
-                <NavItem to="/" exact activeClassName="active">
-                    <FontAwesomeIcon icon={faHome} />
-                </NavItem>
-            </Tooltip>
+                {/* contextual: server tabs */}
+                {serverMatch && (
+                    <>
+                        <Divider />
+                        {GROUP_ORDER.map((group) => {
+                            const items = serverGroupedItems[group];
+                            if (!items || items.length === 0) return null;
+                            return (
+                                <React.Fragment key={group}>
+                                    <EyebrowRow $collapsed={collapsed}>{GROUP_LABELS[group]}</EyebrowRow>
+                                    {items.map((route) => {
+                                        const node = (
+                                            <InternalLink
+                                                key={route.path}
+                                                icon={route.icon!}
+                                                label={route.name!}
+                                                to={`${serverUrlBase}${route.path === '/' ? '' : route.path}`}
+                                                exact={route.exact}
+                                                collapsed={collapsed}
+                                            />
+                                        );
+                                        return route.permission ? (
+                                            <Can key={route.path} action={route.permission} matchAny>
+                                                {node}
+                                            </Can>
+                                        ) : node;
+                                    })}
+                                </React.Fragment>
+                            );
+                        })}
+                    </>
+                )}
 
-            {/* SearchContainer renders its own trigger + modal. */}
-            <SearchContainer />
+                {/* contextual: account tabs */}
+                {inAccount && (
+                    <>
+                        <Divider />
+                        <EyebrowRow $collapsed={collapsed}>account</EyebrowRow>
+                        {routes.account
+                            .filter((r) => !!r.name)
+                            .map((route) => (
+                                <InternalLink
+                                    key={route.path}
+                                    icon={faUser}
+                                    label={route.name!}
+                                    to={`/account/${route.path}`.replace('//', '/')}
+                                    exact={route.exact}
+                                    collapsed={collapsed}
+                                />
+                            ))}
+                    </>
+                )}
+            </Scroll>
 
-            {rootAdmin && (
-                <Tooltip placement="right" content="Admin">
-                    <NavExternalLink href="/admin" rel="noreferrer">
-                        <FontAwesomeIcon icon={faCogs} />
-                    </NavExternalLink>
-                </Tooltip>
-            )}
-
-            {/* flex spacer pushes the lower cluster to the bottom of the rail */}
-            <div style={{ flex: 1 }} />
-
-            <Divider />
-
-            <Tooltip placement="right" content="Account">
-                <NavItem to="/account" activeClassName="active">
-                    <FontAwesomeIcon icon={faUser} />
-                </NavItem>
-            </Tooltip>
-
-            <Tooltip placement="right" content="Sign out">
-                <NavAction onClick={onLogout} aria-label="sign out">
-                    <FontAwesomeIcon icon={faSignOutAlt} />
-                </NavAction>
-            </Tooltip>
+            {/* footer: collapse toggle + sign out */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8px 0' }}>
+                <ActionButton
+                    icon={collapsed ? faAngleDoubleRight : faAngleDoubleLeft}
+                    label={collapsed ? 'Expand' : 'Collapse'}
+                    collapsed={collapsed}
+                    onClick={() => setCollapsed((c) => !c)}
+                    ariaLabel={collapsed ? 'expand sidebar' : 'collapse sidebar'}
+                />
+                <ActionButton
+                    icon={faSignOutAlt}
+                    label={'Sign out'}
+                    collapsed={collapsed}
+                    onClick={onLogout}
+                    ariaLabel={'sign out'}
+                />
+            </div>
         </Rail>
     );
 };
