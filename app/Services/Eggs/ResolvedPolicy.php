@@ -13,6 +13,7 @@ class ResolvedPolicy
         public readonly int $cooldownMinutes,
         public readonly ?string $warningCopy,
         public readonly ?string $iconUrl = null,
+        public readonly ?string $bannerUrl = null,
     ) {
     }
 }

@@ -6,19 +6,37 @@ import { faGamepad, faExclamationTriangle } from '@fortawesome/free-solid-svg-ic
 import { EggSwitchOption } from '@/api/server/eggSwitch';
 
 const Card = styled.button<{ $disabled: boolean }>`
-    ${tw`relative w-full text-left rounded-xl p-5 cursor-pointer`};
+    ${tw`relative w-full text-left rounded-xl cursor-pointer overflow-hidden`};
     background: var(--gynx-surface);
     border: 1px solid var(--gynx-edge);
     transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
     opacity: ${({ $disabled }) => ($disabled ? 0.55 : 1)};
     pointer-events: ${({ $disabled }) => ($disabled ? 'none' : 'auto')};
     font-family: 'Inter', sans-serif;
+    padding: 0;
 
     &:hover {
         transform: translateY(-2px);
         border-color: rgba(124, 58, 237, 0.5);
         box-shadow: 0 12px 30px -14px rgba(124, 58, 237, 0.45);
     }
+`;
+
+const Banner = styled.div<{ $url: string }>`
+    width: 100%;
+    height: 120px;
+    background-image: linear-gradient(180deg, rgba(11, 11, 15, 0) 55%, rgba(11, 11, 15, 0.72) 100%), url(${({ $url }) => $url});
+    background-size: cover;
+    background-position: center;
+    transition: transform .3s ease;
+
+    ${Card}:hover & {
+        transform: scale(1.02);
+    }
+`;
+
+const Body = styled.div`
+    ${tw`p-5`};
 `;
 
 const Header = styled.div`
@@ -115,31 +133,34 @@ export const EggCard: React.FC<Props> = ({ option, onSelect }) => {
             onClick={() => !onCooldown && onSelect(option)}
             disabled={onCooldown}
         >
-            <Header>
-                {option.iconUrl ? (
-                    <IconImg src={option.iconUrl} alt={option.name} />
-                ) : (
-                    <Icon><FontAwesomeIcon icon={faGamepad} /></Icon>
-                )}
-                <div css={tw`flex-1 min-w-0`}>
-                    <Title>{option.name}</Title>
-                    <Meta>egg #{option.eggId}</Meta>
-                </div>
-            </Header>
-            {option.description && <Description>{option.description}</Description>}
-            <Badges>
-                {!option.preservesFiles && (
-                    <WipeBadge>
-                        <FontAwesomeIcon icon={faExclamationTriangle} />
-                        wipes files
-                    </WipeBadge>
-                )}
-                {onCooldown && (
-                    <CooldownBadge>
-                        cooldown {formatCooldown(option.cooldownRemainingSeconds)}
-                    </CooldownBadge>
-                )}
-            </Badges>
+            {option.bannerUrl && <Banner $url={option.bannerUrl} aria-hidden />}
+            <Body>
+                <Header>
+                    {option.iconUrl ? (
+                        <IconImg src={option.iconUrl} alt={option.name} />
+                    ) : (
+                        <Icon><FontAwesomeIcon icon={faGamepad} /></Icon>
+                    )}
+                    <div css={tw`flex-1 min-w-0`}>
+                        <Title>{option.name}</Title>
+                        <Meta>egg #{option.eggId}</Meta>
+                    </div>
+                </Header>
+                {option.description && <Description>{option.description}</Description>}
+                <Badges>
+                    {!option.preservesFiles && (
+                        <WipeBadge>
+                            <FontAwesomeIcon icon={faExclamationTriangle} />
+                            wipes files
+                        </WipeBadge>
+                    )}
+                    {onCooldown && (
+                        <CooldownBadge>
+                            cooldown {formatCooldown(option.cooldownRemainingSeconds)}
+                        </CooldownBadge>
+                    )}
+                </Badges>
+            </Body>
         </Card>
     );
 };

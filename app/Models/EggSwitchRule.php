@@ -38,6 +38,7 @@ class EggSwitchRule extends Model
         'cooldown_minutes' => 'required|integer|min:0',
         'warning_copy' => 'nullable|string',
         'icon_url' => 'nullable|string|url|max:2048',
+        'banner_url' => 'nullable|string|url|max:2048',
         'enabled' => 'required|boolean',
     ];
 

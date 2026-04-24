@@ -87,14 +87,17 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-12 form-group">
+                            <div class="col-md-6 form-group">
                                 <label>Icon URL</label>
                                 <input type="url" name="icon_url" class="form-control" maxlength="2048"
                                        placeholder="https://cdn.example.com/games/minecraft.png">
-                                <p class="text-muted small">
-                                    Optional. Direct image URL (PNG/JPG/SVG/WebP) shown on the game card.
-                                    Rendered at ~40&times;40, cover-fit. Leave blank for the default gamepad icon.
-                                </p>
+                                <p class="text-muted small">Small square icon ~40&times;40. PNG / JPG / SVG / WebP.</p>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label>Banner URL</label>
+                                <input type="url" name="banner_url" class="form-control" maxlength="2048"
+                                       placeholder="https://cdn.example.com/games/minecraft-banner.jpg">
+                                <p class="text-muted small">Wide banner at the top of the card. ~3:1 aspect ratio.</p>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm">Add rule</button>
@@ -114,12 +117,14 @@
                     <table class="table table-hover">
                         <tr>
                             <th>Icon</th>
+                            <th>Banner</th>
                             <th>Source</th>
                             <th>Target</th>
-                            <th>Preserves files</th>
+                            <th>Preserves</th>
                             <th>Cooldown</th>
                             <th>Warning</th>
                             <th>Status</th>
+                            <th></th>
                             <th></th>
                             <th></th>
                         </tr>
@@ -133,6 +138,16 @@
                                              onerror="this.style.display='none'">
                                     @else
                                         <i class="fa fa-gamepad text-muted"></i>
+                                    @endif
+                                </td>
+                                <td style="width: 110px;">
+                                    @if($rule->banner_url)
+                                        <img src="{{ $rule->banner_url }}"
+                                             alt=""
+                                             style="width:100px;height:34px;object-fit:cover;border-radius:4px;"
+                                             onerror="this.style.display='none'">
+                                    @else
+                                        <span class="text-muted">—</span>
                                     @endif
                                 </td>
                                 <td>
@@ -170,6 +185,11 @@
                                     </form>
                                 </td>
                                 <td>
+                                    <a href="{{ route('admin.egg-switch.edit', $rule) }}" class="btn btn-xs btn-primary">
+                                        <i class="fa fa-pencil"></i>
+                                    </a>
+                                </td>
+                                <td>
                                     <form action="{{ route('admin.egg-switch.destroy', $rule) }}" method="POST" style="display:inline"
                                           onsubmit="return confirm('Delete this rule?')">
                                         {{ csrf_field() }}
@@ -182,7 +202,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted" style="padding: 24px;">
+                                <td colspan="11" class="text-center text-muted" style="padding: 24px;">
                                     No rules yet. Add one above to let customers switch games.
                                 </td>
                             </tr>

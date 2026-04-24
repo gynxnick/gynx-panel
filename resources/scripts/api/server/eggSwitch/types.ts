@@ -3,6 +3,7 @@ export interface EggSwitchOption {
     name: string;
     description: string;
     iconUrl: string | null;
+    bannerUrl: string | null;
     preservesFiles: boolean;
     cooldownRemainingSeconds: number;
     warningCopy: string | null;

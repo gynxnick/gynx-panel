@@ -63,8 +63,9 @@ class EggSwitcherService
         $cooldown = $rule?->cooldown_minutes ?? 0;
         $warning = $rule?->warning_copy;
         $iconUrl = $rule?->icon_url;
+        $bannerUrl = $rule?->banner_url;
 
-        return new ResolvedPolicy($preservesFiles, $cooldown, $warning, $iconUrl);
+        return new ResolvedPolicy($preservesFiles, $cooldown, $warning, $iconUrl, $bannerUrl);
     }
 
     /**
@@ -116,6 +117,7 @@ class EggSwitcherService
                 'name' => $egg->name,
                 'description' => (string) ($egg->description ?? ''),
                 'iconUrl' => $policy->iconUrl,
+                'bannerUrl' => $policy->bannerUrl,
                 'preservesFiles' => $policy->preservesFiles,
                 'cooldownRemainingSeconds' => $remaining,
                 'warningCopy' => $policy->warningCopy,

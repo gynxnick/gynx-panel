@@ -53,18 +53,9 @@ class EggSwitchRulesController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'source_egg_id' => 'nullable|integer|exists:eggs,id',
-            'target_egg_id' => 'required|integer|exists:eggs,id',
-            'preserves_files' => 'nullable|boolean',
-            'cooldown_minutes' => 'required|integer|min:0|max:10080',
-            'warning_copy' => 'nullable|string|max:500',
-            'icon_url' => 'nullable|url|max:2048',
-        ]);
+        $data = $this->validateRuleInput($request);
 
-        $data['preserves_files'] = (bool) ($data['preserves_files'] ?? false);
         $data['enabled'] = true;
-        $data['icon_url'] = $data['icon_url'] ?? null;
 
         if ((int) ($data['source_egg_id'] ?? 0) === (int) $data['target_egg_id']) {
             $this->alert->danger('Source and target egg cannot be the same.')->flash();
@@ -83,6 +74,62 @@ class EggSwitchRulesController extends Controller
         }
 
         return redirect()->route('admin.egg-switch.index');
+    }
+
+    public function edit(EggSwitchRule $rule): View
+    {
+        return $this->view->make('admin.egg-switch.edit', [
+            'rule' => $rule,
+            'eggs' => Egg::query()
+                ->with('nest:id,name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'nest_id']),
+        ]);
+    }
+
+    public function update(Request $request, EggSwitchRule $rule): RedirectResponse
+    {
+        $data = $this->validateRuleInput($request);
+
+        if ((int) ($data['source_egg_id'] ?? 0) === (int) $data['target_egg_id']) {
+            $this->alert->danger('Source and target egg cannot be the same.')->flash();
+            return redirect()->route('admin.egg-switch.edit', $rule);
+        }
+
+        try {
+            $rule->forceFill($data)->save();
+            $this->alert->success('Rule updated.')->flash();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), 'Duplicate') || str_contains($e->getMessage(), 'unique')) {
+                $this->alert->danger('Another rule already exists for that source/target pair.')->flash();
+                return redirect()->route('admin.egg-switch.edit', $rule);
+            }
+            $this->alert->danger('Could not update rule: ' . $e->getMessage())->flash();
+            return redirect()->route('admin.egg-switch.edit', $rule);
+        }
+
+        return redirect()->route('admin.egg-switch.index');
+    }
+
+    private function validateRuleInput(Request $request): array
+    {
+        $data = $request->validate([
+            'source_egg_id' => 'nullable|integer|exists:eggs,id',
+            'target_egg_id' => 'required|integer|exists:eggs,id',
+            'preserves_files' => 'nullable|boolean',
+            'cooldown_minutes' => 'required|integer|min:0|max:10080',
+            'warning_copy' => 'nullable|string|max:500',
+            'icon_url' => 'nullable|url|max:2048',
+            'banner_url' => 'nullable|url|max:2048',
+        ]);
+
+        $data['preserves_files'] = (bool) ($data['preserves_files'] ?? false);
+        $data['icon_url'] = $data['icon_url'] ?? null;
+        $data['banner_url'] = $data['banner_url'] ?? null;
+        $data['warning_copy'] = $data['warning_copy'] ?? null;
+        $data['source_egg_id'] = $data['source_egg_id'] ?? null;
+
+        return $data;
     }
 
     public function updateCopy(Request $request): RedirectResponse
