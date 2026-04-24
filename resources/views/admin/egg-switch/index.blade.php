@@ -25,7 +25,7 @@
                         <div class="row">
                             <div class="col-md-4 form-group">
                                 <label>Source egg</label>
-                                <select name="source_egg_id" class="form-control">
+                                <select name="source_egg_id" class="form-control" id="egg-switch-source">
                                     <option value="">(any egg — global rule)</option>
                                     @foreach($eggs as $egg)
                                         <option value="{{ $egg->id }}">{{ $egg->nest?->name ?? '?' }} / {{ $egg->name }}</option>
@@ -35,13 +35,13 @@
                             </div>
                             <div class="col-md-4 form-group">
                                 <label>Target egg <span class="text-danger">*</span></label>
-                                <select name="target_egg_id" class="form-control" required>
+                                <select name="target_egg_id" class="form-control" id="egg-switch-target" required>
                                     <option value="">— choose —</option>
                                     @foreach($eggs as $egg)
-                                        <option value="{{ $egg->id }}">{{ $egg->nest?->name ?? '?' }} / {{ $egg->name }}</option>
+                                        <option value="{{ $egg->id }}" data-egg-label="{{ $egg->nest?->name ?? '?' }} / {{ $egg->name }}">{{ $egg->nest?->name ?? '?' }} / {{ $egg->name }}</option>
                                     @endforeach
                                 </select>
-                                <p class="text-muted small">The egg the server can switch <em>to</em>.</p>
+                                <p class="text-muted small">The egg the server can switch <em>to</em>. Eggs with an existing rule for the chosen source are disabled.</p>
                             </div>
                             <div class="col-md-2 form-group">
                                 <label>Cooldown (minutes)</label>
@@ -149,4 +149,42 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('footer-scripts')
+    @parent
+    <script>
+        // Map of source egg id ('0' = "any egg / global") → [taken target ids].
+        const takenTargets = @json($takenTargets ?? new stdClass);
+
+        function refreshTargetOptions() {
+            const sourceSel = document.getElementById('egg-switch-source');
+            const targetSel = document.getElementById('egg-switch-target');
+            if (!sourceSel || !targetSel) return;
+
+            const sourceKey = sourceSel.value === '' ? '0' : sourceSel.value;
+            const blocked = new Set((takenTargets[sourceKey] || []).map(String));
+
+            Array.from(targetSel.options).forEach((opt) => {
+                if (!opt.value) return; // placeholder
+                const label = opt.dataset.eggLabel || opt.textContent;
+                if (blocked.has(opt.value)) {
+                    opt.disabled = true;
+                    opt.textContent = label + '  — rule exists';
+                    if (targetSel.value === opt.value) targetSel.value = '';
+                } else {
+                    opt.disabled = false;
+                    opt.textContent = label;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const sourceSel = document.getElementById('egg-switch-source');
+            if (sourceSel) {
+                sourceSel.addEventListener('change', refreshTargetOptions);
+                refreshTargetOptions();
+            }
+        });
+    </script>
 @endsection

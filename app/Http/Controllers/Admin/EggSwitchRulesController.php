@@ -21,16 +21,29 @@ class EggSwitchRulesController extends Controller
 
     public function index(): View
     {
+        $rules = EggSwitchRule::query()
+            ->with(['sourceEgg:id,name', 'targetEgg:id,name'])
+            ->orderBy('enabled', 'desc')
+            ->orderBy('target_egg_id')
+            ->get();
+
+        // Map of source egg id ('0' for global / null) → [target_egg_id, ...]
+        // Consumed by the admin page JS to disable already-taken targets
+        // when the user picks a source in the create form.
+        $takenTargets = [];
+        foreach ($rules as $rule) {
+            $key = (string) ($rule->source_egg_id ?? 0);
+            $takenTargets[$key] = $takenTargets[$key] ?? [];
+            $takenTargets[$key][] = (int) $rule->target_egg_id;
+        }
+
         return $this->view->make('admin.egg-switch.index', [
-            'rules' => EggSwitchRule::query()
-                ->with(['sourceEgg:id,name', 'targetEgg:id,name'])
-                ->orderBy('enabled', 'desc')
-                ->orderBy('target_egg_id')
-                ->get(),
+            'rules' => $rules,
             'eggs' => Egg::query()
                 ->with('nest:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'nest_id']),
+            'takenTargets' => $takenTargets,
         ]);
     }
 
