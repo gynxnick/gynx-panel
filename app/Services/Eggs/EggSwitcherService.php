@@ -62,8 +62,9 @@ class EggSwitcherService
         $preservesFiles = $override?->preserves_files ?? $rule?->preserves_files ?? false;
         $cooldown = $rule?->cooldown_minutes ?? 0;
         $warning = $rule?->warning_copy;
+        $iconUrl = $rule?->icon_url;
 
-        return new ResolvedPolicy($preservesFiles, $cooldown, $warning);
+        return new ResolvedPolicy($preservesFiles, $cooldown, $warning, $iconUrl);
     }
 
     /**
@@ -114,7 +115,7 @@ class EggSwitcherService
                 'eggId' => $egg->id,
                 'name' => $egg->name,
                 'description' => (string) ($egg->description ?? ''),
-                'iconUrl' => null,
+                'iconUrl' => $policy->iconUrl,
                 'preservesFiles' => $policy->preservesFiles,
                 'cooldownRemainingSeconds' => $remaining,
                 'warningCopy' => $policy->warningCopy,

@@ -10,6 +10,7 @@ use Pterodactyl\Models\Egg;
 use Pterodactyl\Models\EggSwitchLog;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Services\Eggs\EggSwitcherService;
+use Pterodactyl\Contracts\Repository\SettingsRepositoryInterface;
 use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
 use Pterodactyl\Http\Requests\Api\Client\ClientApiRequest;
 use Pterodactyl\Http\Requests\Api\Client\Servers\EggSwitch\PreviewEggSwitchRequest;
@@ -18,8 +19,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class EggSwitchController extends ClientApiController
 {
+    public const INTRO_COPY_KEY = 'settings::egg_switch:intro_copy';
+    public const DEFAULT_INTRO_COPY = 'Convert this server to a different game without opening a ticket. Review the warnings before you switch — some targets wipe files.';
+
     public function __construct(
         private EggSwitcherService $switcher,
+        private SettingsRepositoryInterface $settings,
     ) {
         parent::__construct();
     }
@@ -30,8 +35,12 @@ class EggSwitchController extends ClientApiController
     public function options(ClientApiRequest $request, Server $server): JsonResponse
     {
         $options = $this->switcher->listAllowedTargets($server, $request->user());
+        $intro = (string) $this->settings->get(self::INTRO_COPY_KEY, self::DEFAULT_INTRO_COPY);
 
-        return new JsonResponse(['data' => $options]);
+        return new JsonResponse([
+            'data' => $options,
+            'meta' => ['intro_copy' => $intro],
+        ]);
     }
 
     /**

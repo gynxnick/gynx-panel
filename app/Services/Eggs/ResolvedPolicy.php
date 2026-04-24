@@ -12,6 +12,7 @@ class ResolvedPolicy
         public readonly bool $preservesFiles,
         public readonly int $cooldownMinutes,
         public readonly ?string $warningCopy,
+        public readonly ?string $iconUrl = null,
     ) {
     }
 }

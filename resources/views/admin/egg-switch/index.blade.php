@@ -17,6 +17,27 @@
         <div class="col-xs-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
+                    <h3 class="box-title">Client page intro copy</h3>
+                </div>
+                <div class="box-body">
+                    <form action="{{ route('admin.egg-switch.copy') }}" method="POST">
+                        {{ csrf_field() }}
+                        <div class="form-group">
+                            <textarea name="intro_copy" class="form-control" rows="2" maxlength="1000"
+                                placeholder="Shown at the top of /server/:id/game">{{ $introCopy }}</textarea>
+                            <p class="text-muted small">Shown above the game grid on every server's Game page. Leave blank to restore the default.</p>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Save intro copy</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12">
+            <div class="box box-primary">
+                <div class="box-header with-border">
                     <h3 class="box-title">Add a rule</h3>
                 </div>
                 <div class="box-body">
@@ -65,6 +86,17 @@
                                 <p class="text-muted small">Optional. Shown in the confirm dialog.</p>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-12 form-group">
+                                <label>Icon URL</label>
+                                <input type="url" name="icon_url" class="form-control" maxlength="2048"
+                                       placeholder="https://cdn.example.com/games/minecraft.png">
+                                <p class="text-muted small">
+                                    Optional. Direct image URL (PNG/JPG/SVG/WebP) shown on the game card.
+                                    Rendered at ~40&times;40, cover-fit. Leave blank for the default gamepad icon.
+                                </p>
+                            </div>
+                        </div>
                         <button type="submit" class="btn btn-primary btn-sm">Add rule</button>
                     </form>
                 </div>
@@ -81,6 +113,7 @@
                 <div class="box-body table-responsive no-padding">
                     <table class="table table-hover">
                         <tr>
+                            <th>Icon</th>
                             <th>Source</th>
                             <th>Target</th>
                             <th>Preserves files</th>
@@ -92,6 +125,16 @@
                         </tr>
                         @forelse($rules as $rule)
                             <tr>
+                                <td style="width: 56px;">
+                                    @if($rule->icon_url)
+                                        <img src="{{ $rule->icon_url }}"
+                                             alt=""
+                                             style="width:32px;height:32px;object-fit:cover;border-radius:4px;"
+                                             onerror="this.style.display='none'">
+                                    @else
+                                        <i class="fa fa-gamepad text-muted"></i>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($rule->sourceEgg)
                                         <code>#{{ $rule->source_egg_id }}</code> {{ $rule->sourceEgg->name }}
@@ -139,7 +182,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted" style="padding: 24px;">
+                                <td colspan="9" class="text-center text-muted" style="padding: 24px;">
                                     No rules yet. Add one above to let customers switch games.
                                 </td>
                             </tr>

@@ -8,6 +8,11 @@ export interface EggSwitchOption {
     warningCopy: string | null;
 }
 
+export interface EggSwitchOptionsResponse {
+    options: EggSwitchOption[];
+    introCopy: string | null;
+}
+
 export interface EggSwitchVariableChange {
     envKey: string;
     from: string | null;

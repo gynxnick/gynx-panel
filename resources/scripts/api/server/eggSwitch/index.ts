@@ -1,9 +1,18 @@
 import http from '@/api/http';
-import { EggSwitchOption, EggSwitchPreview, EggSwitchRequestResult, EggSwitchLogStatus } from './types';
+import {
+    EggSwitchOption,
+    EggSwitchOptionsResponse,
+    EggSwitchPreview,
+    EggSwitchRequestResult,
+    EggSwitchLogStatus,
+} from './types';
 
-export const listEggSwitchOptions = async (uuid: string): Promise<EggSwitchOption[]> => {
+export const listEggSwitchOptions = async (uuid: string): Promise<EggSwitchOptionsResponse> => {
     const { data } = await http.get(`/api/client/servers/${uuid}/egg-switch/options`);
-    return (data?.data ?? []) as EggSwitchOption[];
+    return {
+        options: (data?.data ?? []) as EggSwitchOption[],
+        introCopy: (data?.meta?.intro_copy ?? null) as string | null,
+    };
 };
 
 export const previewEggSwitch = async (uuid: string, targetEggId: number): Promise<EggSwitchPreview> => {

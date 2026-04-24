@@ -40,6 +40,7 @@ export default () => {
 
     const [loading, setLoading] = useState(true);
     const [options, setOptions] = useState<EggSwitchOption[]>([]);
+    const [introCopy, setIntroCopy] = useState<string | null>(null);
 
     const [selected, setSelected] = useState<EggSwitchOption | null>(null);
     const [preview, setPreview] = useState<EggSwitchPreview | null>(null);
@@ -51,7 +52,10 @@ export default () => {
     useEffect(() => {
         clearFlashes('egg-switch');
         listEggSwitchOptions(uuid)
-            .then(setOptions)
+            .then((res) => {
+                setOptions(res.options);
+                setIntroCopy(res.introCopy);
+            })
             .catch((e) => clearAndAddHttpError({ key: 'egg-switch', error: e }))
             .then(() => setLoading(false));
     }, [uuid]);
@@ -122,10 +126,7 @@ export default () => {
 
         return (
             <>
-                <Intro>
-                    Convert this server to a different game without opening a ticket. Review the
-                    warnings before you switch — some targets wipe files.
-                </Intro>
+                {introCopy && <Intro>{introCopy}</Intro>}
                 <Grid>
                     {options.map((o) => (
                         <EggCard key={o.eggId} option={o} onSelect={onSelect} />
