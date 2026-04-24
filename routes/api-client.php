@@ -146,4 +146,12 @@ Route::group([
         Route::post('/', [Client\Servers\EggSwitchController::class, 'request']);
         Route::get('/status/{log}', [Client\Servers\EggSwitchController::class, 'status']);
     });
+
+    Route::group(['prefix' => '/addons/plugins'], function () {
+        Route::get('/sources', [Client\Servers\AddonPluginsController::class, 'sources']);
+        Route::get('/search', [Client\Servers\AddonPluginsController::class, 'search']);
+        Route::get('/', [Client\Servers\AddonPluginsController::class, 'installed']);
+        Route::post('/install', [Client\Servers\AddonPluginsController::class, 'install']);
+        Route::delete('/{plugin}', [Client\Servers\AddonPluginsController::class, 'destroy']);
+    });
 });

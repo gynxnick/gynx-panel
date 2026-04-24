@@ -22,6 +22,10 @@ class Permission extends Model
     public const ACTION_CONTROL_RESTART = 'control.restart';
     public const ACTION_CONTROL_EGG_SWITCH = 'control.egg-switch';
 
+    public const ACTION_ADDON_PLUGIN_READ = 'addon.plugin.read';
+    public const ACTION_ADDON_PLUGIN_INSTALL = 'addon.plugin.install';
+    public const ACTION_ADDON_PLUGIN_DELETE = 'addon.plugin.delete';
+
     public const ACTION_DATABASE_READ = 'database.read';
     public const ACTION_DATABASE_CREATE = 'database.create';
     public const ACTION_DATABASE_UPDATE = 'database.update';
@@ -206,6 +210,15 @@ class Permission extends Model
             'description' => 'Permissions that control a user\'s access to the server activity logs.',
             'keys' => [
                 'read' => 'Allows a user to view the activity logs for the server.',
+            ],
+        ],
+
+        'addon.plugin' => [
+            'description' => 'Permissions that control a user\'s ability to browse and install Minecraft plugins from curated sources (Modrinth, Hangar, SpigotMC, CurseForge).',
+            'keys' => [
+                'read' => 'Allows a user to view the plugin browser and the list of plugins installed on this server.',
+                'install' => 'Allows a user to install a plugin onto this server. Downloads the jar into the /plugins/ directory.',
+                'delete' => 'Allows a user to remove a previously installed plugin, deleting its jar from /plugins/.',
             ],
         ],
     ];

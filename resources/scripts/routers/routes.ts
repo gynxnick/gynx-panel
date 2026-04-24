@@ -11,6 +11,7 @@ import {
     faCog,
     faHistory,
     faGamepad,
+    faPuzzlePiece,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -24,6 +25,7 @@ import StartupContainer from '@/components/server/startup/StartupContainer';
 import FileManagerContainer from '@/components/server/files/FileManagerContainer';
 import SettingsContainer from '@/components/server/settings/SettingsContainer';
 import EggSwitcherContainer from '@/components/server/egg-switch/EggSwitcherContainer';
+import PluginsContainer from '@/components/server/plugins/PluginsContainer';
 import AccountOverviewContainer from '@/components/dashboard/AccountOverviewContainer';
 import AccountApiContainer from '@/components/dashboard/AccountApiContainer';
 import AccountSSHContainer from '@/components/dashboard/ssh/AccountSSHContainer';
@@ -76,6 +78,7 @@ export default {
         { path: '/files',     permission: 'file.*',     name: 'Files',     icon: faFolder,       group: 'management', component: FileManagerContainer },
         { path: '/files/:action(edit|new)', permission: 'file.*', name: undefined, component: FileEditContainer },
         { path: '/databases', permission: 'database.*', name: 'Databases', icon: faDatabase,     group: 'management', component: DatabasesContainer },
+        { path: '/plugins',   permission: 'addon.plugin.*', name: 'Plugins', icon: faPuzzlePiece, group: 'management', component: PluginsContainer },
 
         // Monitoring
         { path: '/schedules', permission: 'schedule.*', name: 'Schedules', icon: faClock,        group: 'monitoring', component: ScheduleContainer },
