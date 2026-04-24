@@ -25,73 +25,74 @@ import LogoMark from '@/components/gynx/LogoMark';
 const Rail = styled.aside`
     ${tw`flex-shrink-0 flex flex-col items-center py-4 z-20`};
     width: 72px;
-    background: linear-gradient(180deg, rgba(15, 17, 26, 0.92), rgba(11, 11, 15, 0.8));
-    border-right: 1px solid var(--gynx-line);
-    backdrop-filter: blur(14px) saturate(130%);
-    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    background: var(--gynx-surface-2);
+    border-right: 1px solid var(--gynx-edge);
 `;
 
 const NavItem = styled(NavLink)`
-    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-gynx-sm text-gynx-text-dim relative`};
-    transition: color .2s ease, background .2s ease, box-shadow .25s ease;
+    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-lg text-gynx-text-dim relative`};
+    transition: color .2s ease, background .2s ease;
 
+    /* Hover = blue flash, per spec */
     &:hover {
         color: #fff;
-        background: rgba(124, 58, 237, 0.1);
+        background: rgba(34, 211, 238, 0.1);
     }
 
+    /* Active = purple pill */
     &.active {
         color: #fff;
-        background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(34, 211, 238, 0.15));
-        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.4), 0 0 20px -6px rgba(124, 58, 237, 0.5);
+        background: rgba(124, 58, 237, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.4);
     }
 
+    /* Left accent — only when active. Solid, no outer glow by default. */
     &.active::before {
         content: '';
         position: absolute;
         left: -12px;
-        top: 8px;
-        bottom: 8px;
-        width: 3px;
-        border-radius: 3px;
-        background: linear-gradient(180deg, #9B5BFF, #22D3EE);
-        box-shadow: 0 0 10px rgba(124, 58, 237, 0.7);
+        top: 10px;
+        bottom: 10px;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--gynx-purple);
     }
 `;
 
 const NavAction = styled.button`
-    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-gynx-sm text-gynx-text-dim bg-transparent border-0 cursor-pointer`};
+    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-lg text-gynx-text-dim bg-transparent border-0 cursor-pointer`};
     transition: color .2s ease, background .2s ease;
 
     &:hover {
         color: #fff;
-        background: rgba(124, 58, 237, 0.1);
+        background: rgba(34, 211, 238, 0.1);
     }
 `;
 
 const NavExternalLink = styled.a`
-    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-gynx-sm text-gynx-text-dim no-underline`};
+    ${tw`flex items-center justify-center w-10 h-10 mb-2 rounded-lg text-gynx-text-dim no-underline`};
     transition: color .2s ease, background .2s ease;
 
     &:hover {
         color: #fff;
-        background: rgba(124, 58, 237, 0.1);
+        background: rgba(34, 211, 238, 0.1);
     }
 `;
 
 const Divider = styled.div`
     ${tw`w-8 my-3`};
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.3), transparent);
+    background: rgba(255, 255, 255, 0.06);
 `;
 
 const BrandLink = styled(Link)`
     ${tw`mb-4 block no-underline`};
-    filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.5));
-    transition: transform .2s ease;
+    transition: transform .2s ease, filter .25s ease;
 
     &:hover {
         transform: scale(1.04);
+        /* Glow is a reward — only reveals on hover */
+        filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.5));
     }
 `;
 

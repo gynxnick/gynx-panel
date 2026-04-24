@@ -8,98 +8,145 @@ import styled from 'styled-components/macro';
 import tw from 'twin.macro';
 
 /**
- * gynx — redesigned stat tile.
+ * gynx — stat tile, realigned to the strict color rule.
  *
- * Glassy panel with a bottom accent bar (purple→neon gradient in the nominal
- * state; red or amber when thresholds are tripped). Icon sits in its own
- * gradient-lined badge; value auto-fits to the tile width via use-fit-text so
- * long numbers don't overflow.
+ * Default state is flat: #1F2937 surface, 1px neutral edge, no glow, no
+ * gradient. Glow only appears on hover. The icon badge is tinted per metric
+ * (CPU=blue, RAM=purple, Disk=yellow, Network=cyan, Status=green) and an
+ * optional progress bar shares that color. When a value crosses its soft/hard
+ * threshold, the icon badge and progress fill flip to yellow/red.
  */
 
-const Tile = styled.div`
-    ${tw`relative flex items-center gap-3 px-4 py-3 rounded-gynx backdrop-blur-md`};
-    background: rgba(17, 19, 28, 0.72);
-    border: 1px solid var(--gynx-line);
+export type Metric = 'cpu' | 'ram' | 'disk' | 'net' | 'status' | 'info';
+export type Severity = 'ok' | 'warn' | 'crit';
+
+const metricColor: Record<Metric, string> = {
+    cpu:    '#60A5FA', // blue
+    ram:    '#A78BFA', // purple
+    disk:   '#FBBF24', // yellow
+    net:    '#22D3EE', // cyan
+    status: '#34D399', // green
+    info:   '#9CA3AF', // neutral
+};
+
+const severityColor: Record<Severity, string> = {
+    ok:   '',
+    warn: '#FBBF24',
+    crit: '#EF4444',
+};
+
+const Tile = styled.div<{ $accent: string; $severity: Severity }>`
+    ${tw`relative flex items-stretch gap-3 px-3 py-3 rounded-xl`};
+    background: var(--gynx-surface);
+    border: 1px solid var(--gynx-edge);
+    transition: transform .2s ease, border-color .25s ease, box-shadow .25s ease;
     overflow: hidden;
-    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
 
     &:hover {
-        transform: translateY(-1px);
+        transform: translateY(-2px);
         border-color: rgba(124, 58, 237, 0.35);
-        box-shadow: 0 10px 28px -14px rgba(124, 58, 237, 0.35);
+        box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35), 0 10px 28px -12px rgba(124, 58, 237, 0.4);
     }
 
-    /* bottom accent bar — overridden per severity via data-severity */
-    &::after {
+    /* Left accent bar — the only default color on the tile. 2px, metric-tinted,
+       flips to severity when warn/crit. */
+    &::before {
         content: '';
         position: absolute;
-        left: 0; right: 0; bottom: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #7C3AED, #22D3EE);
-        opacity: 0.7;
+        left: 0; top: 8px; bottom: 8px;
+        width: 2px;
+        border-radius: 2px;
+        background: ${({ $accent, $severity }) =>
+            $severity === 'ok' ? $accent : severityColor[$severity]};
+        opacity: ${({ $severity }) => ($severity === 'ok' ? 0.55 : 0.9)};
     }
-
-    &[data-severity='warn']::after { background: #F59E0B; opacity: 0.9; }
-    &[data-severity='crit']::after { background: #EF4444; opacity: 0.95; }
 `;
 
-const IconBadge = styled.div`
-    ${tw`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-gynx-sm`};
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.22), rgba(34, 211, 238, 0.12));
-    border: 1px solid rgba(124, 58, 237, 0.25);
-    color: #fff;
-    text-shadow: 0 0 12px rgba(124, 58, 237, 0.55);
+const IconBadge = styled.div<{ $accent: string }>`
+    ${tw`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg`};
+    background: ${({ $accent }) => `${$accent}18`}; /* ~9% of the metric color */
+    color: ${({ $accent }) => $accent};
 
     & > svg {
-        width: 16px; height: 16px;
+        width: 15px; height: 15px;
     }
 `;
 
 const Body = styled.div`
-    ${tw`flex flex-col justify-center overflow-hidden min-w-0 w-full`};
+    ${tw`flex flex-col justify-center overflow-hidden min-w-0 w-full gap-1`};
 `;
 
 const Label = styled.p`
-    ${tw`m-0 font-display text-[11px] uppercase`};
-    letter-spacing: 0.14em;
+    ${tw`m-0`};
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
     color: var(--gynx-text-dim);
     font-weight: 500;
 `;
 
 const Value = styled.div`
-    ${tw`h-7 w-full truncate text-gynx-text`};
+    ${tw`w-full truncate text-gynx-text`};
     font-weight: 600;
     letter-spacing: -0.01em;
+    height: 1.5rem;
+    line-height: 1.5rem;
+`;
+
+const ProgressTrack = styled.div`
+    height: 3px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $color: string; $pct: number }>`
+    height: 100%;
+    width: ${({ $pct }) => Math.max(0, Math.min(1, $pct)) * 100}%;
+    background: ${({ $color }) => $color};
+    border-radius: 2px;
+    transition: width .4s cubic-bezier(0.4, 0, 0.2, 1), background-color .2s ease;
 `;
 
 interface StatBlockProps {
     title: string;
     copyOnClick?: string;
-    color?: string | undefined; // Tailwind bg-* class, kept for back-compat
+    color?: string | undefined;  // legacy: upstream call sites pass a Tailwind class
     icon: IconDefinition;
     children: React.ReactNode;
     className?: string;
+    metric?: Metric;
+    progress?: number;           // 0..1
 }
 
-/**
- * Back-compat adapter: the upstream call site still passes `color` as a
- * Tailwind class (bg-red-500, bg-yellow-500, etc). Map it to a severity
- * flag the new design uses.
- */
-const severityFrom = (color?: string): 'ok' | 'warn' | 'crit' => {
+const severityFrom = (color?: string): Severity => {
     if (!color) return 'ok';
     if (color.includes('red')) return 'crit';
     if (color.includes('yellow') || color.includes('amber')) return 'warn';
     return 'ok';
 };
 
-export default ({ title, copyOnClick, icon, color, className, children }: StatBlockProps) => {
-    const { fontSize, ref } = useFitText({ minFontSize: 8, maxFontSize: 500 });
+export default ({
+    title,
+    copyOnClick,
+    icon,
+    color,
+    className,
+    children,
+    metric = 'info',
+    progress,
+}: StatBlockProps) => {
+    const { fontSize, ref } = useFitText({ minFontSize: 8, maxFontSize: 220 });
+    const severity = severityFrom(color);
+    const accent = metricColor[metric];
+    const fillColor = severity === 'ok' ? accent : severityColor[severity];
 
     return (
         <CopyOnClick text={copyOnClick}>
-            <Tile className={classNames(className)} data-severity={severityFrom(color)}>
-                <IconBadge>
+            <Tile className={classNames(className)} $accent={accent} $severity={severity}>
+                <IconBadge $accent={accent}>
                     <Icon icon={icon} />
                 </IconBadge>
                 <Body>
@@ -107,6 +154,11 @@ export default ({ title, copyOnClick, icon, color, className, children }: StatBl
                     <Value ref={ref} style={{ fontSize }}>
                         {children}
                     </Value>
+                    {typeof progress === 'number' && (
+                        <ProgressTrack>
+                            <ProgressFill $color={fillColor} $pct={progress} />
+                        </ProgressTrack>
+                    )}
                 </Body>
             </Tile>
         </CopyOnClick>

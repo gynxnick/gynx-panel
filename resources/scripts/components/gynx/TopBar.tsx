@@ -102,9 +102,9 @@ const Pill = styled.span<{ $status: string }>`
 `;
 
 const Allocation = styled.span`
-    ${tw`font-mono text-xs text-gynx-text-dim px-2.5 py-1 rounded-gynx-sm`};
+    ${tw`font-mono text-xs text-gynx-text-dim px-2.5 py-1 rounded-md`};
     background: rgba(11, 11, 15, 0.5);
-    border: 1px solid var(--gynx-line-soft);
+    border: 1px solid var(--gynx-edge);
 `;
 
 interface DashboardProps {

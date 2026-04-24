@@ -77,35 +77,41 @@ module.exports = {
 
                 // explicit brand namespace (preferred for new code)
                 gynx: {
-                    void:    '#0B0B0F',
-                    'void-2': '#101018',
-                    slate:   '#1F2937',
-                    'slate-2': '#2A2F3E',
-                    line:    'rgba(124, 58, 237, 0.18)',
-                    'line-soft': 'rgba(156, 163, 175, 0.08)',
-                    purple:  gynxPurple[600],
+                    // base (80%)
+                    void:       '#0B0B0F',
+                    'void-tilt': '#0F172A',
+                    surface:    '#1F2937',
+                    'surface-2': '#111827',
+                    // accents (15%)
+                    purple:     gynxPurple[600],
                     'purple-light': '#9B5BFF',
-                    neon:    gynxNeon[400],
-                    pink:    '#EC4899',
-                    text:    '#E5E7EB',
+                    blue:       gynxNeon[400],
+                    'blue-light': '#67E8F9',
+                    // highlight (5%) — reserved for destructive/CTA
+                    pink:       '#EC4899',
+                    // metric-specific accents
+                    cpu:        '#60A5FA',
+                    ram:        '#A78BFA',
+                    disk:       '#FBBF24',
+                    net:        '#22D3EE',
+                    'status-ok':   '#34D399',
+                    'status-warn': '#FBBF24',
+                    'status-crit': '#EF4444',
+                    // neutral edges — explicitly NOT purple
+                    edge:       'rgba(255, 255, 255, 0.05)',
+                    'edge-2':   'rgba(255, 255, 255, 0.08)',
+                    // text
+                    text:       '#E5E7EB',
                     'text-dim':  '#9CA3AF',
                     'text-mute': '#6B7280',
                 },
             },
-            backgroundImage: {
-                'gynx-gradient': 'linear-gradient(135deg, #7C3AED, #9B5BFF)',
-                'gynx-gradient-br': 'linear-gradient(135deg, #7C3AED 0%, #22D3EE 100%)',
-                'gynx-mesh': [
-                    'radial-gradient(900px 600px at 12% -10%, rgba(124, 58, 237, 0.28), transparent 60%)',
-                    'radial-gradient(1000px 700px at 110% 10%, rgba(34, 211, 238, 0.18), transparent 60%)',
-                    'radial-gradient(700px 500px at 50% 120%, rgba(236, 72, 153, 0.08), transparent 60%)',
-                ].join(', '),
-            },
             boxShadow: {
-                'gynx-glow':      '0 0 0 1px rgba(124, 58, 237, 0.35), 0 8px 28px -8px rgba(124, 58, 237, 0.55)',
-                'gynx-glow-neon': '0 0 0 1px rgba(34, 211, 238, 0.35), 0 8px 28px -8px rgba(34, 211, 238, 0.45)',
-                'gynx-panel':     '0 10px 30px -18px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 58, 237, 0.14)',
-                'gynx-modal':     '0 30px 80px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(124, 58, 237, 0.25), 0 0 60px -20px rgba(124, 58, 237, 0.5)',
+                // hover-only — never applied at rest
+                'gynx-glow':      '0 0 0 1px rgba(124, 58, 237, 0.35), 0 10px 28px -10px rgba(124, 58, 237, 0.45)',
+                'gynx-glow-blue': '0 0 0 1px rgba(34, 211, 238, 0.3), 0 10px 28px -10px rgba(34, 211, 238, 0.35)',
+                'gynx-glow-pink': '0 0 0 1px rgba(236, 72, 153, 0.45), 0 10px 28px -10px rgba(236, 72, 153, 0.5)',
+                'gynx-modal':     '0 30px 80px -20px rgba(0, 0, 0, 0.7)',
             },
             fontSize: {
                 '2xs': '0.625rem',

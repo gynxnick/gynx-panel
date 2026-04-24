@@ -69,8 +69,8 @@ const ServerConsoleContainer = () => {
                 </div>
             </div>
 
-            {/* Live charts row */}
-            <div className={'grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'}>
+            {/* Unified metrics panel — CPU / RAM / Network tabs */}
+            <div className={'mb-6'}>
                 <Spinner.Suspense>
                     <StatGraphs />
                 </Spinner.Suspense>

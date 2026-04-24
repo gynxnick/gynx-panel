@@ -26,7 +26,7 @@ const Main = styled.div`
 const TopStrip = styled.header`
     ${tw`flex-shrink-0 w-full sticky top-0 z-10`};
     background: linear-gradient(180deg, rgba(15, 17, 26, 0.85), rgba(11, 11, 15, 0.5));
-    border-bottom: 1px solid var(--gynx-line);
+    border-bottom: 1px solid var(--gynx-edge-2);
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
 `;
@@ -34,7 +34,7 @@ const TopStrip = styled.header`
 const TabStrip = styled.div`
     ${tw`flex-shrink-0 w-full`};
     background: rgba(15, 17, 26, 0.55);
-    border-bottom: 1px solid var(--gynx-line-soft);
+    border-bottom: 1px solid var(--gynx-edge);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 `;
