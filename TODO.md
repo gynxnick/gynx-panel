@@ -1,61 +1,101 @@
 # gynx-panel — remaining work
 
-Session 1 delivered: design system, app shell (Sidebar + TopBar + AppShell), redesigned Server Console, restyled buttons / tabs / footer, bundle installer. Everything below runs on the new shell and tokens, so each entry is a *rewrite* of a stock page against the new design, not a full-scratch build.
+Session-by-session progress. Each item names the scope, not the implementer; most land as one focused PR.
 
-Priority order reflects customer surface area (how often customers touch the page) × design impact (how much the stock version visibly clashes with the new shell).
+## shipped
 
-## P0 — high-traffic, visibly stock
+### session 1 (f60ca508 and earlier)
+- Design system scaffold (tokens, fonts, globals).
+- App shell: Sidebar + TopBar + AppShell composer.
+- Server Console page redesigned end-to-end.
+- Button system restyled across the whole panel.
+- `install-bundle.sh` / `uninstall-bundle.sh`.
+
+### session 2 (current)
+- **Design realignment** to the strict 80/15/5 rule — "glow is a reward, not a default." Stripped ambient gradient blobs from the canvas, replaced with a subtle dark-slate gradient + structural grid + noise overlay. Panels default to flat `#1F2937` with `rgba(255,255,255,0.05)` edges; hover reveals the purple edge + lift.
+- **Metric-aware stat tiles** — CPU blue, RAM purple, Disk yellow, Network cyan, Status green. Progress bars appear when a tile has a defined limit. Severity prop flips the accent to yellow/red on threshold cross.
+- **ServerDetailsBlock reordered** — Status (prominent) → Connection (IP + copy) → CPU / RAM / Disk / Network, stacked vertically in the right column.
+- **Unified ChartPanel** with CPU / RAM / Network tabs (replaces the three side-by-side chart blocks). Taller chart body for readability, metric-tinted line per tab.
+- **Terminal chrome** stripped of default glow — `#05070B` background, neutral edge, purple ring only on input focus.
+- **Top-nav tabs** icon + group labels (`manage` / `monitor` / `config`). Active tab = purple pill, hover = blue flash.
+- **SubNavigation strip** restyled with glassy backdrop + purple pill for the active tab.
+- **Egg Switcher design doc** at `docs/EGG_SWITCHER.md` — full architecture, API spec, data model, build phases. Nothing implemented yet.
+
+---
+
+## next up — UI polish
+
+### P0 — high-traffic, visibly stock
 
 - [ ] **Dashboard** (`resources/scripts/components/dashboard/DashboardContainer.tsx` + `ServerRow.tsx`).
-  - Server row → a glassy card with bottom-accent severity bar (mirror StatBlock treatment).
+  - Server row → a glassy card with the same severity-bar treatment as StatBlock (status-green / warn-yellow / off-gray).
   - Server avatar: switch from boring-avatar to a gradient monogram of the server name initial.
-  - Hover: translateY(-2px) + purple glow on the border.
-  - Empty state: centered illustration + "Deploy your first server" CTA (use pink `.gynx-cta`).
+  - Hover: `translateY(-2px)` + purple edge glow (reuse `gynx-panel-hoverable`).
+  - Empty state: centered illustration + "Deploy your first server" CTA (use pink `gynx-btn-destructive` for the rare case).
 
 - [ ] **File Manager** (`resources/scripts/components/server/files/`).
   - Breadcrumb row: pill-style, gradient-underline on the active segment.
-  - File row: subtle purple row-hover, left-side file-type icon badge, right-aligned quick actions revealed on hover.
-  - Upload zone: glassy drop-target, neon border when dragging.
+  - File row: blue row-hover (matches new sub-nav), left-side file-type icon badge, right-aligned quick actions revealed on hover.
+  - Upload zone: flat panel default, cyan border when dragging.
 
-- [ ] **Auth pages** (`resources/scripts/routers/AuthenticationRouter.tsx` + under `components/auth/`).
-  - Centered glass card on the full-bleed gradient background.
+- [ ] **Auth pages** (`resources/scripts/routers/AuthenticationRouter.tsx` + `components/auth/`).
+  - Centered panel on the now-minimal background (no more gradient blobs).
   - Logo above the form, tagline below.
-  - Input group with purple focus ring + glow.
+  - Input group: purple focus ring + glow on focus *only*.
 
-## P1 — frequently used
+### P1 — frequently used
 
-- [ ] **Databases** (`components/server/databases/`).
-- [ ] **Schedules** (`components/server/schedules/`) — stat-tile treatment for each schedule card.
-- [ ] **Backups** (`components/server/backups/`) — progress bar with gradient fill during backup creation.
-- [ ] **Account Overview** (`components/dashboard/AccountOverviewContainer.tsx`).
+- [ ] **Databases** — card treatment + copy-host/port/user/pass.
+- [ ] **Schedules** — per-schedule card with next-fire pill.
+- [ ] **Backups** — progress bar during backup creation (cyan fill); destructive delete in pink.
+- [ ] **Account Overview**.
+- [ ] **Dashboard activity log** — timeline treatment.
 
-## P2 — settings surfaces
+### P2 — settings surfaces
 
-- [ ] **Users / Subusers** (`components/server/users/`).
-- [ ] **Network / Allocations** (`components/server/network/`).
-- [ ] **Startup** (`components/server/startup/`).
-- [ ] **Settings** (`components/server/settings/`).
-- [ ] **API Keys** (`components/dashboard/AccountApiContainer.tsx`).
-- [ ] **SSH Keys** (`components/dashboard/AccountSSHContainer.tsx`).
-- [ ] **Activity Log** (`components/dashboard/activity/`, `components/server/activity/`).
+- [ ] Users / Subusers, Network / Allocations, Startup, Settings, API Keys, SSH Keys, Activity Log.
 
-## cross-cutting polish
+### cross-cutting polish
 
-- [ ] **Alerts / flash messages** (`components/elements/alert/`) — gradient-border variants, glassy background, no more stock rounded-sm look.
-- [ ] **Dialog** (`components/elements/dialog/`) — larger radius, `gynx-modal` shadow preset, gradient header bar.
-- [ ] **Inputs** (`components/elements/inputs/`) — confirm `:focus` ring matches the brand purple across all types; currently only styled via Tailwind's `@tailwindcss/forms` plugin defaults.
-- [ ] **Loading / Spinner** (`components/elements/Spinner.tsx`) — replace the color with purple, add a neon pulse halo.
-- [ ] **ScreenBlock** (NotFound / ServerError) — full-bleed ambient background, centered glass card, gx monogram.
-- [ ] **i18n** — strings in the new shell (TopBar eyebrows "workspace", "server", "you") are hard-coded English. Move to `i18n.ts` / locale files.
+- [ ] **Alerts / flash messages** — metric-tinted left bar (info=blue, success=green, warn=yellow, error=red), flat background.
+- [ ] **Dialog** — larger radius, no default glow. Confirm buttons: primary=purple, destructive=pink.
+- [ ] **Inputs** — focus ring audit across all types (text, select, textarea, file).
+- [ ] **Loading / Spinner** — replace with the `.gynx-shimmer` skeleton pattern where it fits; keep the spinner for indeterminate waits but recolor to purple.
+- [ ] **ScreenBlock** (NotFound / ServerError) — flat bg, centered panel, gx monogram.
+- [ ] **i18n** — pull hard-coded strings (`manage` / `monitor` / `config`, `server`, `you`, `workspace`) into locale files.
+- [ ] **Terminal log coloring** — wire info/ok/warn/err CSS classes into `Console.tsx` by detecting log level from line content. Classes already exist in `tailwind.css`.
+- [ ] **Fade-in for new terminal lines** — `.gynx-fade-in` class ready; needs hook-in at `Console.tsx`.
+
+---
+
+## next up — Egg Switcher (see [docs/EGG_SWITCHER.md](docs/EGG_SWITCHER.md))
+
+Implementation phases. Each is a self-contained PR.
+
+- [ ] **Phase 1 — migrations + models**. Three tables (`egg_switch_rules`, `server_egg_switch_overrides`, `egg_switch_logs`), Eloquent models, relationship tests. Backend-only, invisible.
+- [ ] **Phase 2 — service layer + policies + permission key**. `EggSwitcherService`, `EggSwitchPolicy`, `control.egg-switch` permission.
+- [ ] **Phase 3 — client API endpoints**. Four endpoints (§3.4 of the doc). Feature + unit tests.
+- [ ] **Phase 4 — React feature**. Egg picker grid, confirm dialog, progress panel. Ships behind `GYNX_EGG_SWITCHER=1` feature flag.
+- [ ] **Phase 5 — admin Blade UI**. Global rules page + per-server overrides tab.
+- [ ] **Phase 6 — audit log surfacing**. Read endpoint + history drawer on the Game page.
+- [ ] **Phase 7 — `install-full.sh`**. Full-stack deploy script (vs the assets-only `install-bundle.sh`).
+- [ ] **Phase 8 — remove feature flag**. Ship to prod.
+
+Rough budget: ~8–10 focused sessions for the whole Egg Switcher.
+
+---
 
 ## operational / deploy
 
-- [ ] **CI build** — GitHub Action that runs `yarn build:production` on push to main and uploads the `public/assets/` as an artifact. Makes deploy on a Node-less panel host trivial (download the artifact, run `install-bundle.sh`).
-- [ ] **Upstream merge rehearsal** — first real upstream sync against `pterodactyl/panel:v1.11.12` (or whatever the next tag is). Document the conflict areas for the runbook.
-- [ ] **Staging panel** — without one, design iteration is blind. Spin up a throwaway Pterodactyl on a scratch VM with a single test server to validate each PR.
+- [ ] **CI build** — GitHub Action that runs `yarn build:production` on push to main and uploads `public/assets/` as an artifact. Makes deploys on Node-less panel hosts trivial.
+- [ ] **Upstream merge rehearsal** — first real sync against the next `pterodactyl/panel:v1.11.x` tag. Document the conflict areas for the runbook.
+- [ ] **Staging panel** — a throwaway Pterodactyl on a scratch VM with a test server, so design iteration stops being blind.
 
-## nice-to-haves (explicit non-goals for now)
+---
 
-- Light-theme variant. The brand is dark-first; a light mode is a future project, not a session target.
-- Admin panel redesign. Out of scope — admin is internal, AdminLTE stays.
-- Replacing Chart.js. It works, it's themed via our palette; no need.
+## explicit non-goals
+
+- Light-theme variant.
+- Admin panel redesign (AdminLTE stays).
+- Replacing Chart.js.
+- "Performance mode" toggle (design spec §12) — deferred until the activity pulse feature in §12 is in scope; solo toggle with no feature to toggle adds UI for no benefit yet.
