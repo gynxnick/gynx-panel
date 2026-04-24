@@ -14,16 +14,47 @@ import Can from '@/components/elements/Can';
 import { ServerDatabase } from '@/api/server/databases/getServerDatabases';
 import useFlash from '@/plugins/useFlash';
 import tw from 'twin.macro';
+import styled from 'styled-components/macro';
 import Button from '@/components/elements/Button';
 import Label from '@/components/elements/Label';
 import Input from '@/components/elements/Input';
-import GreyRowBox from '@/components/elements/GreyRowBox';
 import CopyOnClick from '@/components/elements/CopyOnClick';
+import { Card, KeyValue } from '@/components/gynx';
 
 interface Props {
     database: ServerDatabase;
     className?: string;
 }
+
+const DbIcon = styled.div`
+    ${tw`flex items-center justify-center rounded-md`};
+    width: 32px;
+    height: 32px;
+    background: rgba(34, 211, 238, 0.08);
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    color: #22D3EE;
+    flex: 0 0 32px;
+`;
+
+const Actions = styled.div`
+    ${tw`flex items-center gap-2`};
+`;
+
+const IconButton = styled.button<{ $danger?: boolean }>`
+    ${tw`inline-flex items-center justify-center rounded-md cursor-pointer`};
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid var(--gynx-edge-2);
+    color: ${({ $danger }) => ($danger ? '#F87171' : 'var(--gynx-text-dim)')};
+    transition: color .15s ease, background .15s ease, border-color .15s ease;
+
+    &:hover {
+        color: ${({ $danger }) => ($danger ? '#F87171' : 'var(--gynx-text)')};
+        background: ${({ $danger }) => ($danger ? 'rgba(248, 113, 113, 0.12)' : 'rgba(255, 255, 255, 0.04)')};
+        border-color: ${({ $danger }) => ($danger ? 'rgba(248, 113, 113, 0.35)' : 'rgba(124, 58, 237, 0.35)')};
+    }
+`;
 
 export default ({ database, className }: Props) => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
@@ -74,8 +105,8 @@ export default ({ database, className }: Props) => {
                         <FlashMessageRender byKey={'database:delete'} css={tw`mb-6`} />
                         <h2 css={tw`text-2xl mb-6`}>Confirm database deletion</h2>
                         <p css={tw`text-sm`}>
-                            Deleting a database is a permanent action, it cannot be undone. This will permanently delete
-                            the <strong>{database.name}</strong> database and remove all associated data.
+                            Deleting a database is permanent. This will destroy the{' '}
+                            <strong>{database.name}</strong> database and everything in it.
                         </p>
                         <Form css={tw`m-0 mt-6`}>
                             <Field
@@ -97,9 +128,10 @@ export default ({ database, className }: Props) => {
                     </Modal>
                 )}
             </Formik>
+
             <Modal visible={connectionVisible} onDismissed={() => setConnectionVisible(false)}>
                 <FlashMessageRender byKey={'database-connection-modal'} css={tw`mb-6`} />
-                <h3 css={tw`mb-6 text-2xl`}>Database connection details</h3>
+                <h3 css={tw`mb-6 text-2xl`}>Connection details</h3>
                 <div>
                     <Label>Endpoint</Label>
                     <CopyOnClick text={database.connectionString}>
@@ -139,42 +171,45 @@ export default ({ database, className }: Props) => {
                     </Button>
                 </div>
             </Modal>
-            <GreyRowBox $hoverable={false} className={className} css={tw`mb-2`}>
-                <div css={tw`hidden md:block`}>
-                    <FontAwesomeIcon icon={faDatabase} fixedWidth />
-                </div>
-                <div css={tw`flex-1 ml-4`}>
-                    <CopyOnClick text={database.name}>
-                        <p css={tw`text-lg`}>{database.name}</p>
-                    </CopyOnClick>
-                </div>
-                <div css={tw`ml-8 text-center hidden md:block`}>
-                    <CopyOnClick text={database.connectionString}>
-                        <p css={tw`text-sm`}>{database.connectionString}</p>
-                    </CopyOnClick>
-                    <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Endpoint</p>
-                </div>
-                <div css={tw`ml-8 text-center hidden md:block`}>
-                    <p css={tw`text-sm`}>{database.allowConnectionsFrom}</p>
-                    <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Connections from</p>
-                </div>
-                <div css={tw`ml-8 text-center hidden md:block`}>
-                    <CopyOnClick text={database.username}>
-                        <p css={tw`text-sm`}>{database.username}</p>
-                    </CopyOnClick>
-                    <p css={tw`mt-1 text-2xs text-neutral-500 uppercase select-none`}>Username</p>
-                </div>
-                <div css={tw`ml-8`}>
-                    <Button isSecondary css={tw`mr-2`} onClick={() => setConnectionVisible(true)}>
-                        <FontAwesomeIcon icon={faEye} fixedWidth />
-                    </Button>
-                    <Can action={'database.delete'}>
-                        <Button color={'red'} isSecondary onClick={() => setVisible(true)}>
-                            <FontAwesomeIcon icon={faTrashAlt} fixedWidth />
-                        </Button>
-                    </Can>
-                </div>
-            </GreyRowBox>
+
+            <Card
+                className={className}
+                title={
+                    <span css={tw`inline-flex items-center gap-3`}>
+                        <DbIcon><FontAwesomeIcon icon={faDatabase} /></DbIcon>
+                        <CopyOnClick text={database.name}>
+                            <span>{database.name}</span>
+                        </CopyOnClick>
+                    </span>
+                }
+                actions={
+                    <Actions>
+                        <IconButton
+                            type={'button'}
+                            onClick={() => setConnectionVisible(true)}
+                            aria-label={'View connection details'}
+                            title={'View connection details'}
+                        >
+                            <FontAwesomeIcon icon={faEye} />
+                        </IconButton>
+                        <Can action={'database.delete'}>
+                            <IconButton
+                                type={'button'}
+                                $danger
+                                onClick={() => setVisible(true)}
+                                aria-label={'Delete database'}
+                                title={'Delete database'}
+                            >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                            </IconButton>
+                        </Can>
+                    </Actions>
+                }
+            >
+                <KeyValue label={'Endpoint'} value={database.connectionString} copyable={database.connectionString} />
+                <KeyValue label={'Username'} value={database.username} copyable={database.username} />
+                <KeyValue label={'Connections from'} value={database.allowConnectionsFrom} />
+            </Card>
         </>
     );
 };

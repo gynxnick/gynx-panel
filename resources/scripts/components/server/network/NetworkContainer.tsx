@@ -7,11 +7,26 @@ import AllocationRow from '@/components/server/network/AllocationRow';
 import Button from '@/components/elements/Button';
 import createServerAllocation from '@/api/server/network/createServerAllocation';
 import tw from 'twin.macro';
+import styled from 'styled-components/macro';
 import Can from '@/components/elements/Can';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import getServerAllocations from '@/api/swr/getServerAllocations';
 import isEqual from 'react-fast-compare';
 import { useDeepCompareEffect } from '@/plugins/useDeepCompareEffect';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faNetworkWired } from '@fortawesome/free-solid-svg-icons';
+import { EmptyState } from '@/components/gynx';
+
+const Grid = styled.div`
+    ${tw`grid grid-cols-1 lg:grid-cols-2 gap-4`};
+`;
+
+const Footer = styled.div`
+    ${tw`flex items-center justify-between flex-wrap gap-3 mt-6`};
+    color: var(--gynx-text-dim);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+`;
 
 const NetworkContainer = () => {
     const [loading, setLoading] = useState(false);
@@ -33,13 +48,11 @@ const NetworkContainer = () => {
 
     useDeepCompareEffect(() => {
         if (!data) return;
-
         setServerFromState((state) => ({ ...state, allocations: data }));
     }, [data]);
 
     const onCreateAllocation = () => {
         clearFlashes();
-
         setLoading(true);
         createServerAllocation(uuid)
             .then((allocation) => {
@@ -50,29 +63,45 @@ const NetworkContainer = () => {
             .then(() => setLoading(false));
     };
 
+    // Sort: primary first, then by port.
+    const sorted = data
+        ? [...data].sort((a, b) => {
+              if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+              return a.port - b.port;
+          })
+        : null;
+
     return (
         <ServerContentBlock showFlashKey={'server:network'} title={'Network'}>
-            {!data ? (
+            <SpinnerOverlay visible={loading} />
+            {!sorted ? (
                 <Spinner size={'large'} centered />
+            ) : sorted.length === 0 ? (
+                <EmptyState
+                    size={'page'}
+                    icon={<FontAwesomeIcon icon={faNetworkWired} />}
+                    title={'No allocations'}
+                    body={'This server has no network allocations assigned. Contact your admin if this looks wrong.'}
+                />
             ) : (
                 <>
-                    {data.map((allocation) => (
-                        <AllocationRow key={`${allocation.ip}:${allocation.port}`} allocation={allocation} />
-                    ))}
+                    <Grid>
+                        {sorted.map((allocation) => (
+                            <AllocationRow key={`${allocation.ip}:${allocation.port}`} allocation={allocation} />
+                        ))}
+                    </Grid>
                     {allocationLimit > 0 && (
                         <Can action={'allocation.create'}>
-                            <SpinnerOverlay visible={loading} />
-                            <div css={tw`mt-6 sm:flex items-center justify-end`}>
-                                <p css={tw`text-sm text-neutral-300 mb-4 sm:mr-6 sm:mb-0`}>
-                                    You are currently using {data.length} of {allocationLimit} allowed allocations for
-                                    this server.
-                                </p>
-                                {allocationLimit > data.length && (
-                                    <Button css={tw`w-full sm:w-auto`} color={'primary'} onClick={onCreateAllocation}>
+                            <Footer>
+                                <span>
+                                    {sorted.length} of {allocationLimit} allocations in use
+                                </span>
+                                {allocationLimit > sorted.length && (
+                                    <Button color={'primary'} onClick={onCreateAllocation}>
                                         Create Allocation
                                     </Button>
                                 )}
-                            </div>
+                            </Footer>
                         </Can>
                     )}
                 </>

@@ -6,10 +6,25 @@ import CreateBackupButton from '@/components/server/backups/CreateBackupButton';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import BackupRow from '@/components/server/backups/BackupRow';
 import tw from 'twin.macro';
+import styled from 'styled-components/macro';
 import getServerBackups, { Context as ServerBackupContext } from '@/api/swr/getServerBackups';
 import { ServerContext } from '@/state/server';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import Pagination from '@/components/elements/Pagination';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArchive } from '@fortawesome/free-solid-svg-icons';
+import { EmptyState } from '@/components/gynx';
+
+const Grid = styled.div`
+    ${tw`grid grid-cols-1 lg:grid-cols-2 gap-4`};
+`;
+
+const Footer = styled.div`
+    ${tw`flex items-center justify-between flex-wrap gap-3 mt-6`};
+    color: var(--gynx-text-dim);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+`;
 
 const BackupContainer = () => {
     const { page, setPage } = useContext(ServerBackupContext);
@@ -21,10 +36,8 @@ const BackupContainer = () => {
     useEffect(() => {
         if (!error) {
             clearFlashes('backups');
-
             return;
         }
-
         clearAndAddHttpError({ error, key: 'backups' });
     }, [error]);
 
@@ -32,44 +45,55 @@ const BackupContainer = () => {
         return <Spinner size={'large'} centered />;
     }
 
+    const renderList = (items: typeof backups.items) =>
+        !items.length ? (
+            !backupLimit ? null : (
+                <EmptyState
+                    size={'page'}
+                    icon={<FontAwesomeIcon icon={faArchive} />}
+                    title={page > 1 ? 'No more backups on this page' : 'No backups yet'}
+                    body={
+                        page > 1
+                            ? 'Try going back to page one.'
+                            : 'Create a backup to freeze the current state of your server. You can also automate this in Schedules.'
+                    }
+                    action={
+                        page === 1 && (
+                            <Can action={'backup.create'}>
+                                <CreateBackupButton />
+                            </Can>
+                        )
+                    }
+                />
+            )
+        ) : (
+            <Grid>
+                {items.map((backup) => (
+                    <BackupRow key={backup.uuid} backup={backup} />
+                ))}
+            </Grid>
+        );
+
     return (
         <ServerContentBlock title={'Backups'}>
             <FlashMessageRender byKey={'backups'} css={tw`mb-4`} />
             <Pagination data={backups} onPageSelect={setPage}>
-                {({ items }) =>
-                    !items.length ? (
-                        // Don't show any error messages if the server has no backups and the user cannot
-                        // create additional ones for the server.
-                        !backupLimit ? null : (
-                            <p css={tw`text-center text-sm text-neutral-300`}>
-                                {page > 1
-                                    ? "Looks like we've run out of backups to show you, try going back a page."
-                                    : 'It looks like there are no backups currently stored for this server.'}
-                            </p>
-                        )
-                    ) : (
-                        items.map((backup, index) => (
-                            <BackupRow key={backup.uuid} backup={backup} css={index > 0 ? tw`mt-2` : undefined} />
-                        ))
-                    )
-                }
+                {({ items }) => renderList(items)}
             </Pagination>
             {backupLimit === 0 && (
-                <p css={tw`text-center text-sm text-neutral-300`}>
-                    Backups cannot be created for this server because the backup limit is set to 0.
+                <p css={tw`text-center text-sm text-neutral-400 mt-6`}>
+                    Backups are disabled for this server.
                 </p>
             )}
             <Can action={'backup.create'}>
-                <div css={tw`mt-6 sm:flex items-center justify-end`}>
-                    {backupLimit > 0 && backups.backupCount > 0 && (
-                        <p css={tw`text-sm text-neutral-300 mb-4 sm:mr-6 sm:mb-0`}>
-                            {backups.backupCount} of {backupLimit} backups have been created for this server.
-                        </p>
-                    )}
-                    {backupLimit > 0 && backupLimit > backups.backupCount && (
-                        <CreateBackupButton css={tw`w-full sm:w-auto`} />
-                    )}
-                </div>
+                {backupLimit > 0 && backups.items.length > 0 && (
+                    <Footer>
+                        <span>
+                            {backups.backupCount} of {backupLimit} backups used
+                        </span>
+                        {backupLimit > backups.backupCount && <CreateBackupButton />}
+                    </Footer>
+                )}
             </Can>
         </ServerContentBlock>
     );

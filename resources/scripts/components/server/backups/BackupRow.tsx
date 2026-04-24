@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArchive, faEllipsisH, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faArchive, faLock } from '@fortawesome/free-solid-svg-icons';
 import { format, formatDistanceToNow } from 'date-fns';
 import Spinner from '@/components/elements/Spinner';
 import { bytesToString } from '@/lib/formatters';
@@ -8,15 +8,53 @@ import Can from '@/components/elements/Can';
 import useWebsocketEvent from '@/plugins/useWebsocketEvent';
 import BackupContextMenu from '@/components/server/backups/BackupContextMenu';
 import tw from 'twin.macro';
-import GreyRowBox from '@/components/elements/GreyRowBox';
+import styled from 'styled-components/macro';
 import getServerBackups from '@/api/swr/getServerBackups';
 import { ServerBackup } from '@/api/server/types';
 import { SocketEvent } from '@/components/server/events';
+import { Card, KeyValue, Pill } from '@/components/gynx';
 
 interface Props {
     backup: ServerBackup;
     className?: string;
 }
+
+const Icon = styled.div<{ $locked?: boolean; $pending?: boolean }>`
+    ${tw`flex items-center justify-center rounded-md`};
+    width: 32px;
+    height: 32px;
+    background: ${({ $locked, $pending }) =>
+        $locked
+            ? 'rgba(252, 211, 77, 0.08)'
+            : $pending
+            ? 'rgba(156, 163, 175, 0.08)'
+            : 'rgba(124, 58, 237, 0.08)'};
+    border: 1px solid ${({ $locked, $pending }) =>
+        $locked
+            ? 'rgba(252, 211, 77, 0.35)'
+            : $pending
+            ? 'var(--gynx-edge-2)'
+            : 'rgba(124, 58, 237, 0.25)'};
+    color: ${({ $locked, $pending }) =>
+        $locked ? '#FCD34D' : $pending ? '#9CA3AF' : '#C4B5FD'};
+    flex: 0 0 32px;
+`;
+
+const HeaderTitle = styled.span`
+    ${tw`inline-flex items-center gap-3 min-w-0`};
+`;
+
+const Name = styled.span`
+    ${tw`truncate`};
+    max-width: 60ch;
+`;
+
+const Checksum = styled.p`
+    ${tw`text-xs mt-2 truncate`};
+    color: var(--gynx-text-mute);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    margin: 0;
+`;
 
 export default ({ backup, className }: Props) => {
     const { mutate } = getServerBackups();
@@ -24,11 +62,10 @@ export default ({ backup, className }: Props) => {
     useWebsocketEvent(`${SocketEvent.BACKUP_COMPLETED}:${backup.uuid}` as SocketEvent, (data) => {
         try {
             const parsed = JSON.parse(data);
-
             mutate(
-                (data) => ({
-                    ...data,
-                    items: data.items.map((b) =>
+                (d) => ({
+                    ...d,
+                    items: d.items.map((b) =>
                         b.uuid !== backup.uuid
                             ? b
                             : {
@@ -37,66 +74,63 @@ export default ({ backup, className }: Props) => {
                                   checksum: (parsed.checksum_type || '') + ':' + (parsed.checksum || ''),
                                   bytes: parsed.file_size || 0,
                                   completedAt: new Date(),
-                              }
+                              },
                     ),
                 }),
-                false
+                false,
             );
         } catch (e) {
             console.warn(e);
         }
     });
 
+    const pending = backup.completedAt === null;
+    const failed = backup.completedAt !== null && !backup.isSuccessful;
+    const icon = backup.isLocked ? faLock : faArchive;
+
+    const pill = pending ? (
+        <Pill variant={'warn'}>creating</Pill>
+    ) : failed ? (
+        <Pill variant={'err'}>failed</Pill>
+    ) : backup.isLocked ? (
+        <Pill variant={'warn'}>locked</Pill>
+    ) : (
+        <Pill variant={'live'}>ready</Pill>
+    );
+
     return (
-        <GreyRowBox css={tw`flex-wrap md:flex-nowrap items-center`} className={className}>
-            <div css={tw`flex items-center truncate w-full md:flex-1`}>
-                <div css={tw`mr-4`}>
-                    {backup.completedAt !== null ? (
-                        backup.isLocked ? (
-                            <FontAwesomeIcon icon={faLock} css={tw`text-yellow-500`} />
-                        ) : (
-                            <FontAwesomeIcon icon={faArchive} css={tw`text-neutral-300`} />
-                        )
-                    ) : (
-                        <Spinner size={'small'} />
-                    )}
+        <Card
+            className={className}
+            title={
+                <HeaderTitle>
+                    <Icon $locked={backup.isLocked && !pending} $pending={pending}>
+                        {pending ? <Spinner size={'small'} /> : <FontAwesomeIcon icon={icon} />}
+                    </Icon>
+                    <Name title={backup.name}>{backup.name}</Name>
+                </HeaderTitle>
+            }
+            actions={
+                <div css={tw`flex items-center gap-2`}>
+                    {pill}
+                    <Can action={['backup.download', 'backup.restore', 'backup.delete']} matchAny>
+                        {!pending && <BackupContextMenu backup={backup} />}
+                    </Can>
                 </div>
-                <div css={tw`flex flex-col truncate`}>
-                    <div css={tw`flex items-center text-sm mb-1`}>
-                        {backup.completedAt !== null && !backup.isSuccessful && (
-                            <span
-                                css={tw`bg-red-500 py-px px-2 rounded-full text-white text-xs uppercase border border-red-600 mr-2`}
-                            >
-                                Failed
-                            </span>
-                        )}
-                        <p css={tw`break-words truncate`}>{backup.name}</p>
-                        {backup.completedAt !== null && backup.isSuccessful && (
-                            <span css={tw`ml-3 text-neutral-300 text-xs font-extralight hidden sm:inline`}>
-                                {bytesToString(backup.bytes)}
-                            </span>
-                        )}
-                    </div>
-                    <p css={tw`mt-1 md:mt-0 text-xs text-neutral-400 font-mono truncate`}>{backup.checksum}</p>
-                </div>
-            </div>
-            <div css={tw`flex-1 md:flex-none md:w-48 mt-4 md:mt-0 md:ml-8 md:text-center`}>
-                <p title={format(backup.createdAt, 'ddd, MMMM do, yyyy HH:mm:ss')} css={tw`text-sm`}>
-                    {formatDistanceToNow(backup.createdAt, { includeSeconds: true, addSuffix: true })}
-                </p>
-                <p css={tw`text-2xs text-neutral-500 uppercase mt-1`}>Created</p>
-            </div>
-            <Can action={['backup.download', 'backup.restore', 'backup.delete']} matchAny>
-                <div css={tw`mt-4 md:mt-0 ml-6`} style={{ marginRight: '-0.5rem' }}>
-                    {!backup.completedAt ? (
-                        <div css={tw`p-2 invisible`}>
-                            <FontAwesomeIcon icon={faEllipsisH} />
-                        </div>
-                    ) : (
-                        <BackupContextMenu backup={backup} />
-                    )}
-                </div>
-            </Can>
-        </GreyRowBox>
+            }
+        >
+            <KeyValue
+                label={'Created'}
+                value={
+                    <span title={format(backup.createdAt, 'EEEE, MMMM do yyyy HH:mm:ss')}>
+                        {formatDistanceToNow(backup.createdAt, { includeSeconds: true, addSuffix: true })}
+                    </span>
+                }
+            />
+            <KeyValue
+                label={'Size'}
+                value={backup.completedAt && backup.isSuccessful ? bytesToString(backup.bytes) : '—'}
+            />
+            {backup.checksum && <Checksum>{backup.checksum}</Checksum>}
+        </Card>
     );
 };

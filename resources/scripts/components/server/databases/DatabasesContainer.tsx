@@ -9,9 +9,24 @@ import CreateDatabaseButton from '@/components/server/databases/CreateDatabaseBu
 import Can from '@/components/elements/Can';
 import useFlash from '@/plugins/useFlash';
 import tw from 'twin.macro';
+import styled from 'styled-components/macro';
 import Fade from '@/components/elements/Fade';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import { useDeepMemoize } from '@/plugins/useDeepMemoize';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDatabase } from '@fortawesome/free-solid-svg-icons';
+import { EmptyState } from '@/components/gynx';
+
+const Grid = styled.div`
+    ${tw`grid grid-cols-1 lg:grid-cols-2 gap-4`};
+`;
+
+const Footer = styled.div`
+    ${tw`flex items-center justify-between flex-wrap gap-3 mt-6`};
+    color: var(--gynx-text-dim);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+`;
 
 export default () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
@@ -45,32 +60,39 @@ export default () => {
                 <Fade timeout={150}>
                     <>
                         {databases.length > 0 ? (
-                            databases.map((database, index) => (
-                                <DatabaseRow
-                                    key={database.id}
-                                    database={database}
-                                    className={index > 0 ? 'mt-1' : undefined}
-                                />
-                            ))
+                            <Grid>
+                                {databases.map((database) => (
+                                    <DatabaseRow key={database.id} database={database} />
+                                ))}
+                            </Grid>
                         ) : (
-                            <p css={tw`text-center text-sm text-neutral-300`}>
-                                {databaseLimit > 0
-                                    ? 'It looks like you have no databases.'
-                                    : 'Databases cannot be created for this server.'}
-                            </p>
+                            <EmptyState
+                                size={'page'}
+                                icon={<FontAwesomeIcon icon={faDatabase} />}
+                                title={databaseLimit > 0 ? 'No databases yet' : 'Databases unavailable'}
+                                body={
+                                    databaseLimit > 0
+                                        ? 'Spin up your first MySQL database to start storing state for your server.'
+                                        : 'This server isn’t configured to host databases. Contact your admin if you need one.'
+                                }
+                                action={
+                                    databaseLimit > 0 && (
+                                        <Can action={'database.create'}>
+                                            <CreateDatabaseButton />
+                                        </Can>
+                                    )
+                                }
+                            />
                         )}
                         <Can action={'database.create'}>
-                            <div css={tw`mt-6 flex items-center justify-end`}>
-                                {databaseLimit > 0 && databases.length > 0 && (
-                                    <p css={tw`text-sm text-neutral-300 mb-4 sm:mr-6 sm:mb-0`}>
-                                        {databases.length} of {databaseLimit} databases have been allocated to this
-                                        server.
-                                    </p>
-                                )}
-                                {databaseLimit > 0 && databaseLimit !== databases.length && (
-                                    <CreateDatabaseButton css={tw`flex justify-end mt-6`} />
-                                )}
-                            </div>
+                            {databaseLimit > 0 && databases.length > 0 && (
+                                <Footer>
+                                    <span>
+                                        {databases.length} of {databaseLimit} databases in use
+                                    </span>
+                                    {databaseLimit !== databases.length && <CreateDatabaseButton />}
+                                </Footer>
+                            )}
                         </Can>
                     </>
                 </Fade>
