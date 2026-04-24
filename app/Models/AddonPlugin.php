@@ -28,8 +28,11 @@ class AddonPlugin extends Model
 
     protected $table = 'addon_plugins';
 
-    /** append-only install log; no update_at */
-    public const UPDATED_AT = null;
+    /**
+     * No Eloquent-managed timestamps — the table only has `installed_at`
+     * (DB default CURRENT_TIMESTAMP), not `created_at` / `updated_at`.
+     */
+    public $timestamps = false;
 
     protected $guarded = ['id', 'installed_at'];
 
