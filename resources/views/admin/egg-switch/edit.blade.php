@@ -68,16 +68,27 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-12 form-group">
+                            <div class="col-md-6 form-group">
                                 <label>Quick-fill from Modrinth</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control modrinth-slug-input"
-                                           placeholder="modrinth project slug — e.g. paper, fabric-loader, sodium, atm10">
+                                           placeholder="modrinth slug — e.g. paper, fabric-loader, sodium">
                                     <span class="input-group-btn">
-                                        <button type="button" class="btn btn-default modrinth-fetch-btn">Fetch icon &amp; banner</button>
+                                        <button type="button" class="btn btn-default modrinth-fetch-btn">Fetch from Modrinth</button>
                                     </span>
                                 </div>
-                                <p class="text-muted small modrinth-status">Fills in both URL fields below from <code>api.modrinth.com</code>. Slug is whatever's after <code>modrinth.com/{type}/</code>.</p>
+                                <p class="text-muted small modrinth-status">Pulls icon + featured gallery image from <code>api.modrinth.com</code>.</p>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label>Quick-fill from Steam</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control steam-appid-input" inputmode="numeric"
+                                           placeholder="steam app id — e.g. 892970 (Valheim), 252490 (Rust)">
+                                    <span class="input-group-btn">
+                                        <button type="button" class="btn btn-default steam-fetch-btn">Fetch from Steam</button>
+                                    </span>
+                                </div>
+                                <p class="text-muted small steam-status">Builds Steam CDN URLs (library cover + library hero). Falls back to header.jpg for older games.</p>
                             </div>
                         </div>
                         <div class="row">
@@ -118,9 +129,72 @@
 @section('footer-scripts')
     @parent
     <script>
-        // Modrinth quick-fill — same behaviour as the index page (CORS-friendly
-        // public API, scoped per form so multiple instances would coexist).
+        // Steam + Modrinth quick-fill — same behaviour as the index page.
+        // Steam uses Image-element probing (no CORS issue); Modrinth uses
+        // fetch against their public API (CORS allowed).
         document.addEventListener('DOMContentLoaded', function () {
+            const STEAM_CDN = 'https://cdn.cloudflare.steamstatic.com/steam/apps';
+            const STEAM_LIBRARY_CDN = 'https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps';
+
+            function probeImage(url) {
+                return new Promise(function (resolve) {
+                    const img = new Image();
+                    img.onload = function () { resolve(true); };
+                    img.onerror = function () { resolve(false); };
+                    img.src = url;
+                });
+            }
+
+            async function pickFirstAvailable(urls) {
+                for (const u of urls) {
+                    if (await probeImage(u)) return u;
+                }
+                return null;
+            }
+
+            document.querySelectorAll('.steam-fetch-btn').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    const form = btn.closest('form');
+                    if (!form) return;
+                    const appInput = form.querySelector('.steam-appid-input');
+                    const status = form.querySelector('.steam-status');
+                    const iconInput = form.querySelector('input[name="icon_url"]');
+                    const bannerInput = form.querySelector('input[name="banner_url"]');
+                    const appid = (appInput.value || '').trim();
+                    if (!appid || !/^\d+$/.test(appid)) {
+                        status.innerHTML = '<span style="color:#dd4b39">Enter a numeric Steam app ID (the number in any store.steampowered.com/app/&lt;id&gt; URL).</span>';
+                        return;
+                    }
+                    status.innerHTML = '<span class="text-muted">Probing Steam CDN…</span>';
+                    btn.disabled = true;
+                    try {
+                        const iconUrl = await pickFirstAvailable([
+                            STEAM_LIBRARY_CDN + '/' + appid + '/library_600x900.jpg',
+                            STEAM_CDN + '/' + appid + '/header.jpg',
+                        ]);
+                        const bannerUrl = await pickFirstAvailable([
+                            STEAM_LIBRARY_CDN + '/' + appid + '/library_hero.jpg',
+                            STEAM_CDN + '/' + appid + '/page_bg_generated_v6b.jpg',
+                            STEAM_CDN + '/' + appid + '/header.jpg',
+                        ]);
+                        if (!iconUrl && !bannerUrl) {
+                            status.innerHTML = '<span style="color:#dd4b39">No assets found for app ' + appid + '. Double-check the app ID.</span>';
+                            return;
+                        }
+                        if (iconUrl) iconInput.value = iconUrl;
+                        if (bannerUrl) bannerInput.value = bannerUrl;
+                        const parts = ['Loaded Steam app ' + appid + '.'];
+                        if (!iconUrl) parts.push('No icon — paste one manually.');
+                        if (!bannerUrl) parts.push('No banner — paste one manually.');
+                        status.innerHTML = '<span style="color:#5cb85c">' + parts.join(' ') + ' Save to apply.</span>';
+                    } catch (e) {
+                        status.innerHTML = '<span style="color:#dd4b39">Probe error: ' + (e.message || e) + '</span>';
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
+            });
+
             document.querySelectorAll('.modrinth-fetch-btn').forEach(function (btn) {
                 btn.addEventListener('click', async function () {
                     const form = btn.closest('form');
