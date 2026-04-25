@@ -112,6 +112,40 @@ class SpigotAdapter implements AddonSource
         ];
     }
 
+    public function listVersions(string $type, string $externalId, ?string $gameVersion = null, int $limit = 20): array
+    {
+        $this->assertPlugin($type);
+
+        try {
+            $res = $this->http->get("resources/{$externalId}/versions", [
+                'query' => [
+                    'size' => min(max($limit, 1), 25),
+                    'sort' => '-releaseDate',
+                ],
+            ]);
+        } catch (TransferException $e) {
+            throw new NotFoundHttpException('SpigotMC resource not found: ' . $externalId);
+        }
+
+        $versions = json_decode((string) $res->getBody(), true) ?: [];
+
+        return array_map(function (array $v) {
+            $ts = $v['releaseDate'] ?? null;
+            return [
+                'version_id' => (string) ($v['id'] ?? ''),
+                'version' => (string) ($v['name'] ?? ''),
+                // SpiGet doesn't expose tested-against MC versions on the
+                // version record itself — that's resource-level metadata.
+                'game_versions' => [],
+                'loaders' => [],
+                'channel' => null,
+                'file_name' => null,
+                'downloads' => isset($v['downloads']) ? (int) $v['downloads'] : null,
+                'published_at' => $ts ? gmdate('c', (int) $ts) : null,
+            ];
+        }, $versions);
+    }
+
     private function assertPlugin(string $type): void
     {
         if ($type !== self::TYPE_PLUGIN) {

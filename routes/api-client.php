@@ -173,6 +173,10 @@ Route::group([
         Route::get('/search', [Client\Servers\AddonModpacksController::class, 'search']);
         Route::get('/', [Client\Servers\AddonModpacksController::class, 'installed']);
         Route::post('/install', [Client\Servers\AddonModpacksController::class, 'install']);
+        Route::post('/{modpack}/extract', [Client\Servers\AddonModpacksController::class, 'extract']);
         Route::delete('/{modpack}', [Client\Servers\AddonModpacksController::class, 'destroy']);
     });
+
+    // Shared versions endpoint — used by all three install pickers.
+    Route::get('/addons/versions', [Client\Servers\AddonVersionsController::class, 'index']);
 });

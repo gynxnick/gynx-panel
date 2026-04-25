@@ -132,6 +132,135 @@ class ModpackInstallerService
         $pack->delete();
     }
 
+    /**
+     * Walk a Modrinth .mrpack archive into the server filesystem.
+     *
+     *   1. Decompress the archive into a private work dir under /modpacks/.
+     *   2. Read modrinth.index.json (the manifest).
+     *   3. For each file entry: if the server env rule allows it, dispatch a
+     *      Wings pull() at the entry's relative path. We use foreground:false
+     *      so Wings queues downloads in parallel rather than serialising.
+     *   4. Lift everything in overrides/ and server-overrides/ up to the
+     *      server root. We move only top-level entries — Wings rename is a
+     *      filesystem rename, so moving a directory takes its whole subtree
+     *      with it. Conflicts (e.g. an existing /config dir) are skipped
+     *      with a logged warning rather than aborting the whole extract.
+     *   5. Drop the work dir + the archive.
+     *
+     * The DB row flips to EXTRACTED on success, FAILED on any thrown error
+     * mid-flight (the partial filesystem state is the user's to clean up,
+     * since blanket deletes could clobber their existing config).
+     *
+     * @throws \Throwable
+     */
+    public function extract(Server $server, AddonModpack $pack): AddonModpack
+    {
+        if ($pack->server_id !== $server->id) {
+            throw new ConflictHttpException('Modpack does not belong to this server.');
+        }
+        if ($pack->status === AddonModpack::STATUS_EXTRACTED) {
+            throw new ConflictHttpException('Modpack is already extracted.');
+        }
+        if (!str_ends_with(strtolower($pack->file_name), '.mrpack')) {
+            throw new ConflictHttpException('Auto-extract is currently only supported for Modrinth .mrpack archives.');
+        }
+
+        $files = $this->daemonFiles->setServer($server);
+        $workName = '.work-' . $pack->id;
+        $workPath = '/modpacks/' . $workName;
+
+        try {
+            // 1. Create the work dir + move the archive in. Using root=/
+            // with full relative paths to avoid any ambiguity around how
+            // Wings resolves nested-root rename pairs.
+            $files->createDirectory($workName, '/modpacks');
+            $files->renameFiles('/', [[
+                'from' => 'modpacks/' . $pack->file_name,
+                'to' => 'modpacks/' . $workName . '/' . $pack->file_name,
+            ]]);
+
+            // 2. Decompress (sync, up to 15 min — Wings holds the request).
+            $files->decompressFile($workPath, $pack->file_name);
+
+            // 3. Manifest. Cap the read at 1 MB; even huge packs (1k+ mods)
+            // produce manifests of a few hundred KB tops.
+            $manifestRaw = $files->getContent($workPath . '/modrinth.index.json', 1024 * 1024);
+            $manifest = json_decode($manifestRaw, true);
+            if (!is_array($manifest) || empty($manifest['files'])) {
+                throw new ConflictHttpException('modrinth.index.json is missing or empty in this archive.');
+            }
+
+            // 4. Fan out mod downloads. Skip entries marked unsupported on
+            // the server side (mostly client-only mods like Sodium).
+            foreach ($manifest['files'] as $entry) {
+                $serverEnv = $entry['env']['server'] ?? 'required';
+                if ($serverEnv === 'unsupported') continue;
+
+                $relPath = ltrim((string) ($entry['path'] ?? ''), '/');
+                if ($relPath === '' || str_contains($relPath, '..')) continue;
+
+                $downloads = $entry['downloads'] ?? [];
+                $url = $downloads[0] ?? null;
+                if (!$url) continue;
+
+                $dir = '/' . trim(dirname($relPath), '/.');
+                $name = basename($relPath);
+
+                try {
+                    $files->pull($url, $dir === '/' ? '/' : $dir, [
+                        'filename' => $name,
+                        'foreground' => false,
+                    ]);
+                } catch (\Throwable $e) {
+                    // Best-effort: log via report() but keep walking so a
+                    // single dead URL doesn't kill the whole pack.
+                    report($e);
+                }
+            }
+
+            // 5. Lift overrides (and server-overrides for server-side packs)
+            // into the server root. client-overrides/ is intentionally
+            // skipped — those are launcher-only resources.
+            foreach (['server-overrides', 'overrides'] as $overrideDir) {
+                $sourcePath = $workPath . '/' . $overrideDir;
+                try {
+                    $listing = $files->getDirectory($sourcePath);
+                } catch (\Throwable $e) {
+                    continue; // override dir doesn't exist in this pack
+                }
+
+                foreach ($listing as $entry) {
+                    $name = $entry['name'] ?? null;
+                    if (!$name) continue;
+                    try {
+                        $files->renameFiles('/', [[
+                            'from' => ltrim($sourcePath, '/') . '/' . $name,
+                            'to' => $name,
+                        ]]);
+                    } catch (\Throwable $e) {
+                        // Conflict — entry already exists in server root.
+                        // Logged but not fatal; user can resolve manually.
+                        report($e);
+                    }
+                }
+            }
+
+            // 6. Drop the work dir (which still contains the archive,
+            // overrides we couldn't move, and the manifest).
+            try {
+                $files->deleteFiles('/modpacks', [$workName]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            $pack->update(['status' => AddonModpack::STATUS_EXTRACTED]);
+            return $pack->refresh();
+        } catch (\Throwable $e) {
+            $pack->update(['status' => AddonModpack::STATUS_FAILED]);
+            throw $e;
+        }
+    }
+
     private function readableNameFromFile(string $file): string
     {
         $base = preg_replace('/\.(mrpack|zip|jar)$/i', '', $file);

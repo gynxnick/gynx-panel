@@ -61,6 +61,21 @@ const BrandArt = styled.img`
     user-select: none;
 `;
 
+/**
+ * Same grain overlay as AppShell — keeps the auth pages visually consistent
+ * with the rest of the panel so the login → dashboard handoff doesn't feel
+ * like a different application.
+ */
+const Grain = styled.div`
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+`;
+
 const BrandLockup = styled.div`
     ${tw`relative z-10 flex items-center mb-8 md:mb-0`};
 `;
@@ -108,10 +123,18 @@ const FormSide = styled.div`
 const FormCard = styled.div`
     ${tw`w-full relative rounded-xl`};
     max-width: 440px;
-    background: var(--gynx-surface);
+    /* Layer two backgrounds: a soft top-left highlight (gives the card a
+       subtle bevel like real glass under an off-screen light source) over
+       the flat surface tint. */
+    background:
+        radial-gradient(120% 80% at 0% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
+        var(--gynx-surface);
     border: 1px solid var(--gynx-edge);
     padding: 32px;
-    box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+    /* Outer drop-shadow + 1px inner top highlight for the bevel finish. */
+    box-shadow:
+        0 24px 60px -20px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
     @media (max-width: 640px) {
         padding: 24px;
@@ -204,8 +227,12 @@ const FormFrame = styled(Form)`
     input[type='email']:focus,
     input[type='password']:focus,
     input[type='number']:focus {
-        border-color: rgba(124, 58, 237, 0.55) !important;
-        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18) !important;
+        border-color: rgba(124, 58, 237, 0.6) !important;
+        /* Tighter 2px ring + a 1px inner highlight = more refined than the
+           old 3px halo, reads as "input is live" rather than "input is loud". */
+        box-shadow:
+            0 0 0 2px rgba(124, 58, 237, 0.22),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
         outline: none !important;
         background: rgba(19, 21, 31, 0.98) !important;
     }
@@ -307,6 +334,7 @@ export default forwardRef<HTMLFormElement, Props>(({ title, children, ...props }
     return (
         <Shell>
             <BrandArt src={LoginBg} alt={''} aria-hidden />
+            <Grain aria-hidden />
             <BrandPanel>
                 <BrandLockup aria-label={brandCfg.siteName}>
                     <LogoMark size={72} url={brandCfg.logoUrl} alt={brandCfg.siteName} />

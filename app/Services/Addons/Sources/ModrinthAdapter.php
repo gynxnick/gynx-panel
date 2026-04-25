@@ -133,6 +133,39 @@ class ModrinthAdapter implements AddonSource
         ];
     }
 
+    public function listVersions(string $type, string $externalId, ?string $gameVersion = null, int $limit = 20): array
+    {
+        $this->assertSupports($type);
+
+        $query = [];
+        if ($gameVersion) {
+            $query['game_versions'] = json_encode([$gameVersion]);
+        }
+
+        try {
+            $res = $this->http->get("project/{$externalId}/version", ['query' => $query]);
+        } catch (TransferException $e) {
+            throw new NotFoundHttpException('Modrinth project not found: ' . $externalId);
+        }
+
+        $versions = json_decode((string) $res->getBody(), true) ?: [];
+        $sliced = array_slice($versions, 0, max(1, $limit));
+
+        return array_map(function (array $v) {
+            $file = $v['files'][0] ?? null;
+            return [
+                'version_id' => (string) ($v['id'] ?? ''),
+                'version' => (string) ($v['version_number'] ?? ''),
+                'game_versions' => array_values(array_map('strval', $v['game_versions'] ?? [])),
+                'loaders' => array_values(array_map('strval', $v['loaders'] ?? [])),
+                'channel' => isset($v['version_type']) ? (string) $v['version_type'] : null,
+                'file_name' => $file['filename'] ?? null,
+                'downloads' => isset($v['downloads']) ? (int) $v['downloads'] : null,
+                'published_at' => $v['date_published'] ?? null,
+            ];
+        }, $sliced);
+    }
+
     private function assertSupports(string $type): void
     {
         if (!$this->supports($type)) {

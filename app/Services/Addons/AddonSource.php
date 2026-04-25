@@ -38,4 +38,18 @@ interface AddonSource
      * @return array{url:string, file_name:string, file_hash:?string, version:string, version_id:string}
      */
     public function resolveDownload(string $type, string $externalId, ?string $versionId, ?string $gameVersion = null): array;
+
+    /**
+     * List the most recent versions of an add-on. Used by the install UI's
+     * version picker. Sources that can't enumerate versions cheaply (Spigot
+     * paid plugins, Hangar's resource model) may return [] — the UI degrades
+     * to a "latest only" install, which is the existing default behaviour.
+     *
+     * @return array<int,array{
+     *   version_id:string, version:string, game_versions:array<int,string>,
+     *   loaders:array<int,string>, channel:?string, file_name:?string,
+     *   downloads:?int, published_at:?string
+     * }>
+     */
+    public function listVersions(string $type, string $externalId, ?string $gameVersion = null, int $limit = 20): array;
 }

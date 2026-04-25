@@ -176,17 +176,21 @@ export default () => {
         if (query.trim().length >= 2) runSearch(query.trim(), source);
     }, [source]);
 
-    const onInstall = useCallback(async (hit: PluginSearchHit) => {
+    const onInstall = useCallback(async (hit: PluginSearchHit, versionId?: string) => {
         setInstalling(`${hit.source}:${hit.external_id}`);
         clearFlashes('mods');
         try {
-            await installMod(uuid, { source: hit.source, external_id: hit.external_id });
+            await installMod(uuid, {
+                source: hit.source,
+                external_id: hit.external_id,
+                ...(versionId ? { version_id: versionId } : {}),
+            });
             const fresh = await listInstalledMods(uuid);
             setInstalled(fresh);
             addFlash({
                 key: 'mods',
                 type: 'success',
-                message: `Installed ${hit.name}. Restart the server for it to load.`,
+                message: `Installed ${hit.name}${versionId ? ' (selected version)' : ''}. Restart the server for it to load.`,
             });
         } catch (e) {
             clearAndAddHttpError({ key: 'mods', error: e });
@@ -243,6 +247,8 @@ export default () => {
                             key={`${hit.source}:${hit.external_id}`}
                             hit={hit}
                             loading={installing === `${hit.source}:${hit.external_id}`}
+                            addonType={'mod'}
+                            serverUuid={uuid}
                             onInstall={onInstall}
                         />
                     ))}

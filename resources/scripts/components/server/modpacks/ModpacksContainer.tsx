@@ -7,6 +7,7 @@ import {
     faBoxes,
     faTrashAlt,
     faExclamationTriangle,
+    faBoxOpen,
 } from '@fortawesome/free-solid-svg-icons';
 import { debounce } from 'debounce';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
@@ -19,6 +20,7 @@ import SourceFilter from '@/components/server/plugins/SourceFilter';
 import PluginCard from '@/components/server/plugins/PluginCard';
 import { PluginSearchHit, PluginSourceInfo, PluginSourceSlug } from '@/api/server/plugins';
 import {
+    extractInstalledModpack,
     installModpack,
     InstalledModpack,
     listInstalledModpacks,
@@ -132,11 +134,13 @@ const IconButton = styled.button<{ $danger?: boolean }>`
     color: ${({ $danger }) => ($danger ? '#F87171' : 'var(--gynx-text-dim)')};
     transition: color .15s ease, border-color .15s ease, background .15s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
         color: ${({ $danger }) => ($danger ? '#F87171' : 'var(--gynx-text)')};
         background: ${({ $danger }) => ($danger ? 'rgba(248, 113, 113, 0.1)' : 'rgba(255, 255, 255, 0.04)')};
         border-color: ${({ $danger }) => ($danger ? 'rgba(248, 113, 113, 0.35)' : 'rgba(124, 58, 237, 0.35)')};
     }
+
+    &:disabled { opacity: .55; cursor: not-allowed; }
 `;
 
 type TabKind = 'browse' | 'installed';
@@ -155,6 +159,7 @@ export default () => {
 
     const [installed, setInstalled] = useState<InstalledModpack[]>([]);
     const [loadingInstalled, setLoadingInstalled] = useState(true);
+    const [extracting, setExtracting] = useState<number | null>(null);
 
     useEffect(() => {
         clearFlashes('modpacks');
@@ -197,7 +202,7 @@ export default () => {
         if (query.trim().length >= 2) runSearch(query.trim(), source);
     }, [source]);
 
-    const onInstall = useCallback(async (hit: PluginSearchHit) => {
+    const onInstall = useCallback(async (hit: PluginSearchHit, versionId?: string) => {
         const ok = window.confirm(
             `Download "${hit.name}" into /modpacks/?\n\n` +
             `This only downloads the archive. It does NOT extract it or overwrite your current files. ` +
@@ -208,7 +213,11 @@ export default () => {
         setInstalling(`${hit.source}:${hit.external_id}`);
         clearFlashes('modpacks');
         try {
-            await installModpack(uuid, { source: hit.source, external_id: hit.external_id });
+            await installModpack(uuid, {
+                source: hit.source,
+                external_id: hit.external_id,
+                ...(versionId ? { version_id: versionId } : {}),
+            });
             const fresh = await listInstalledModpacks(uuid);
             setInstalled(fresh);
             addFlash({
@@ -220,6 +229,39 @@ export default () => {
             clearAndAddHttpError({ key: 'modpacks', error: e });
         } finally {
             setInstalling(null);
+        }
+    }, [uuid]);
+
+    const onExtract = useCallback(async (p: InstalledModpack) => {
+        const ok = window.confirm(
+            `Extract "${p.name}" into the server filesystem?\n\n` +
+            `This will:\n` +
+            `  • Download every mod listed in the .mrpack manifest into /mods/\n` +
+            `  • Copy overrides (configs, scripts, resources) into the server root\n` +
+            `  • SKIP any override file that would overwrite an existing file\n\n` +
+            `Stop the server first and back up your current world / configs if you have anything you can't afford to lose.`,
+        );
+        if (!ok) return;
+
+        setExtracting(p.id);
+        clearFlashes('modpacks');
+        try {
+            const updated = await extractInstalledModpack(uuid, p.id);
+            setInstalled((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: updated.status } : x)));
+            addFlash({
+                key: 'modpacks',
+                type: 'success',
+                message: `Extracted ${p.name}. Mod downloads are queued in Wings — check /mods/ in a minute.`,
+            });
+        } catch (e) {
+            clearAndAddHttpError({ key: 'modpacks', error: e });
+            // Server may still have flipped status to failed; refresh.
+            try {
+                const fresh = await listInstalledModpacks(uuid);
+                setInstalled(fresh);
+            } catch { /* ignore */ }
+        } finally {
+            setExtracting(null);
         }
     }, [uuid]);
 
@@ -244,10 +286,9 @@ export default () => {
             <Banner>
                 <BannerIcon icon={faExclamationTriangle} />
                 <div>
-                    <strong>Heads up — modpacks download, they don’t auto-install.</strong>{' '}
-                    Clicking install pulls the modpack archive (usually <code>.mrpack</code>) into <code>/modpacks/</code>.
-                    You still need to back up, then extract it and copy its <code>overrides/</code> + mods into place via
-                    the File Manager. Full auto-extract is coming in a later phase.
+                    <strong>Modpacks download to <code>/modpacks/</code> first.</strong>{' '}
+                    Once downloaded, hit <em>Extract</em> on the Downloaded tab — we'll walk the manifest, pull every server-side mod into <code>/mods/</code>, and copy <code>overrides/</code> into the server root.
+                    Stop the server and back up your world / configs first.
                 </div>
             </Banner>
 
@@ -281,6 +322,8 @@ export default () => {
                             key={`${hit.source}:${hit.external_id}`}
                             hit={hit}
                             loading={installing === `${hit.source}:${hit.external_id}`}
+                            addonType={'modpack'}
+                            serverUuid={uuid}
                             onInstall={onInstall}
                         />
                     ))}
@@ -321,6 +364,16 @@ export default () => {
                             </div>
                             <FileName title={p.fileName}>/modpacks/{p.fileName}</FileName>
                         </div>
+                        {p.status === 'downloaded' && (
+                            <IconButton
+                                type={'button'}
+                                onClick={() => onExtract(p)}
+                                title={'Extract this modpack into the server'}
+                                disabled={extracting === p.id}
+                            >
+                                {extracting === p.id ? <Spinner size={'small'} /> : <FontAwesomeIcon icon={faBoxOpen} />}
+                            </IconButton>
+                        )}
                         <IconButton $danger type={'button'} onClick={() => onRemove(p)} title={`Remove archive`}>
                             <FontAwesomeIcon icon={faTrashAlt} />
                         </IconButton>

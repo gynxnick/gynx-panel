@@ -49,6 +49,23 @@ const BgArt = styled.img`
     user-select: none;
 `;
 
+/**
+ * Faint film-grain overlay. The hero SVG can read as too "clean" on big
+ * monitors — a 3-4% noise pass at overlay blend mode adds tactile depth
+ * without breaking the 80/15/5 brand color rule (it's neutral). Inline SVG
+ * data URL to avoid an extra request; numOctaves=2 + baseFrequency=0.85
+ * gives a fine, non-banded grain.
+ */
+const Grain = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+`;
+
 const Main = styled.div`
     ${tw`flex-1 min-w-0 flex flex-col`};
     position: relative;
@@ -134,6 +151,7 @@ export default ({ header, children }: Props) => {
     return (
         <Shell>
             <BgArt src={DashboardBg} alt={''} aria-hidden />
+            <Grain aria-hidden />
             <Sidebar />
             <Main>
                 <Stuck>

@@ -97,6 +97,35 @@ class AddonModpacksController extends ClientApiController
         ], Response::HTTP_CREATED);
     }
 
+    public function extract(ClientApiRequest $request, Server $server, AddonModpack $modpack): JsonResponse
+    {
+        $this->ensurePermission($request, $server, Permission::ACTION_ADDON_MODPACK_INSTALL);
+
+        $pack = $this->installer->extract($server, $modpack);
+
+        try {
+            Activity::event('server:addon.modpack.extract')
+                ->property('source', $pack->source)
+                ->property('external_id', $pack->external_id)
+                ->property('file', $pack->file_name)
+                ->log();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return new JsonResponse([
+            'data' => [
+                'id' => $pack->id,
+                'source' => $pack->source,
+                'externalId' => $pack->external_id,
+                'name' => $pack->name,
+                'version' => $pack->version,
+                'fileName' => $pack->file_name,
+                'status' => $pack->status,
+            ],
+        ]);
+    }
+
     public function destroy(ClientApiRequest $request, Server $server, AddonModpack $modpack): JsonResponse
     {
         $this->ensurePermission($request, $server, Permission::ACTION_ADDON_MODPACK_DELETE);

@@ -137,6 +137,39 @@ class HangarAdapter implements AddonSource
         ];
     }
 
+    public function listVersions(string $type, string $externalId, ?string $gameVersion = null, int $limit = 20): array
+    {
+        $this->assertPlugin($type);
+
+        try {
+            $res = $this->http->get("projects/{$externalId}/versions", [
+                'query' => ['limit' => min(max($limit, 1), 25)],
+            ]);
+        } catch (TransferException $e) {
+            throw new NotFoundHttpException('Hangar project not found: ' . $externalId);
+        }
+
+        $data = json_decode((string) $res->getBody(), true) ?: [];
+        $versions = $data['result'] ?? [];
+
+        return array_map(function (array $v) {
+            $name = (string) ($v['name'] ?? '');
+            $paperVersions = $v['platformDependencies']['PAPER'] ?? [];
+            $loaders = array_keys($v['platformDependencies'] ?? []);
+
+            return [
+                'version_id' => $name,
+                'version' => $name,
+                'game_versions' => array_values(array_map('strval', $paperVersions)),
+                'loaders' => array_values(array_map('strval', $loaders)),
+                'channel' => isset($v['channel']['name']) ? (string) $v['channel']['name'] : null,
+                'file_name' => $v['downloads']['PAPER']['fileInfo']['name'] ?? null,
+                'downloads' => isset($v['stats']['totalDownloads']) ? (int) $v['stats']['totalDownloads'] : null,
+                'published_at' => $v['createdAt'] ?? null,
+            ];
+        }, $versions);
+    }
+
     private function assertPlugin(string $type): void
     {
         if ($type !== self::TYPE_PLUGIN) {

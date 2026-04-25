@@ -32,6 +32,11 @@ export const installModpack = async (
     return data?.data;
 };
 
+export const extractInstalledModpack = async (uuid: string, id: number): Promise<InstalledModpack> => {
+    const { data } = await http.post(`/api/client/servers/${uuid}/addons/modpacks/${id}/extract`);
+    return data?.data as InstalledModpack;
+};
+
 export const removeInstalledModpack = async (uuid: string, id: number): Promise<void> => {
     await http.delete(`/api/client/servers/${uuid}/addons/modpacks/${id}`);
 };
