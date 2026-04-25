@@ -50,6 +50,7 @@ class AssetComposer
                 'footerCopy' => $branding['footer_copy'] ?? null,
                 'dashboardEmptyTitle' => $branding['dashboard_empty_title'] ?? null,
                 'dashboardEmptyBody' => $branding['dashboard_empty_body'] ?? null,
+                'modpackInstallWarning' => $branding['modpack_install_warning'] ?? null,
             ],
         ]);
     }

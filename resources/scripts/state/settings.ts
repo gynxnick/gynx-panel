@@ -15,6 +15,7 @@ export interface BrandingSettings {
     footerCopy?: string;
     dashboardEmptyTitle?: string;
     dashboardEmptyBody?: string;
+    modpackInstallWarning?: string;
 }
 
 export interface SiteSettings {
@@ -46,7 +47,7 @@ const settings: SettingsStore = {
 export default settings;
 
 /** Defaults used when the admin hasn't overridden a branding field. */
-const DEFAULTS: Required<Omit<BrandingSettings, 'logoUrl' | 'footerCopy'>> & { logoUrl: string; footerCopy: string } = {
+const DEFAULTS: Required<BrandingSettings> = {
     siteName: 'gynx.gg',
     tagline: 'host smarter. play harder.',
     logoUrl: '',
@@ -61,6 +62,10 @@ const DEFAULTS: Required<Omit<BrandingSettings, 'logoUrl' | 'footerCopy'>> & { l
     footerCopy: '',
     dashboardEmptyTitle: 'No servers yet',
     dashboardEmptyBody: 'Ask your admin for a deployment, or contact support.',
+    modpackInstallWarning:
+        'Install runs the full pipeline: download → extract → mod fan-out. The .mrpack lands in /modpacks/, ' +
+        'server-side mods go to /mods/, and overrides/ contents lift into the server root. Stop the server ' +
+        'and back up your world / configs first — extract WILL overwrite matching files.',
 };
 
 export const brand = (s?: SiteSettings) => {
@@ -74,5 +79,6 @@ export const brand = (s?: SiteSettings) => {
         footerCopy: b.footerCopy || DEFAULTS.footerCopy,
         dashboardEmptyTitle: b.dashboardEmptyTitle || DEFAULTS.dashboardEmptyTitle,
         dashboardEmptyBody: b.dashboardEmptyBody || DEFAULTS.dashboardEmptyBody,
+        modpackInstallWarning: b.modpackInstallWarning || DEFAULTS.modpackInstallWarning,
     };
 };

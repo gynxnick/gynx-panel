@@ -33,6 +33,11 @@ class BrandingController extends Controller
         'footer_copy'       => ['label' => 'Footer copy',          'default' => '',                                                                    'max' => 200],
         'dashboard_empty_title' => ['label' => 'Dashboard empty-state title', 'default' => 'No servers yet',                                          'max' => 100],
         'dashboard_empty_body'  => ['label' => 'Dashboard empty-state body',  'default' => 'Ask your admin for a deployment, or contact support.',   'max' => 300],
+        'modpack_install_warning' => [
+            'label' => 'Modpack install warning (top-of-page banner)',
+            'default' => 'Install runs the full pipeline: download → extract → mod fan-out. The .mrpack lands in /modpacks/, server-side mods go to /mods/, and overrides/ contents lift into the server root. Stop the server and back up your world / configs first — extract WILL overwrite matching files.',
+            'max' => 600,
+        ],
     ];
 
     public function __construct(

@@ -39,8 +39,10 @@
                         @foreach($fields as $key => $meta)
                             <div class="form-group">
                                 <label>{{ $meta['label'] }}</label>
-                                @if($key === 'auth_lede' || $key === 'dashboard_empty_body')
-                                    <textarea name="{{ $key }}" class="form-control" rows="2" maxlength="{{ $meta['max'] }}"
+                                @if($key === 'auth_lede' || $key === 'dashboard_empty_body' || $key === 'modpack_install_warning')
+                                    <textarea name="{{ $key }}" class="form-control"
+                                        rows="{{ $key === 'modpack_install_warning' ? 4 : 2 }}"
+                                        maxlength="{{ $meta['max'] }}"
                                         placeholder="{{ $meta['default'] }}">{{ $values[$key] }}</textarea>
                                 @elseif($key === 'logo_url')
                                     <input type="url" name="{{ $key }}" class="form-control" maxlength="{{ $meta['max'] }}"

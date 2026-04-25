@@ -13,7 +13,10 @@ import { debounce } from 'debounce';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import Spinner from '@/components/elements/Spinner';
+import { useStoreState } from 'easy-peasy';
 import useFlash from '@/plugins/useFlash';
+import { ApplicationStore } from '@/state';
+import { brand } from '@/state/settings';
 import { ServerContext } from '@/state/server';
 import { EmptyState, Card as GynxCard, Pill } from '@/components/gynx';
 import SourceFilter from '@/components/server/plugins/SourceFilter';
@@ -147,6 +150,7 @@ type TabKind = 'browse' | 'installed';
 
 export default () => {
     const uuid = ServerContext.useStoreState((s) => s.server.data!.uuid);
+    const brandCfg = useStoreState((state: ApplicationStore) => brand(state.settings.data));
     const { clearFlashes, clearAndAddHttpError, addFlash } = useFlash();
 
     const [tab, setTab] = useState<TabKind>('browse');
@@ -309,11 +313,11 @@ export default () => {
         <>
             <Banner>
                 <BannerIcon icon={faExclamationTriangle} />
-                <div>
-                    <strong>Install runs the full pipeline: download → extract → mod fan-out.</strong>{' '}
-                    The .mrpack lands in <code>/modpacks/</code>, server-side mods go to <code>/mods/</code>, and <code>overrides/</code> contents lift into the server root.
-                    Stop the server and back up your world / configs first — extract <em>will</em> overwrite matching files.
-                </div>
+                {/* Plain-text from the Branding admin page so ops can edit
+                    without a redeploy. <code>/<em>/<strong> aren't honored
+                    when the copy is admin-supplied — keep it readable as
+                    one prose line. */}
+                <div>{brandCfg.modpackInstallWarning}</div>
             </Banner>
 
             <Toolbar>
