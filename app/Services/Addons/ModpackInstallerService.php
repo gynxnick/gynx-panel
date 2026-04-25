@@ -190,6 +190,11 @@ class ModpackInstallerService
                 throw new ConflictHttpException('modrinth.index.json is missing or empty in this archive.');
             }
 
+            // 3a. Clean install: wipe /mods/ contents so the new pack defines
+            // the mod set. Old leftover jars otherwise coexist with the new
+            // pack's mods and the server crashes on startup.
+            $this->wipeDirContents($files, '/mods');
+
             // 4. Fan out mod downloads. Skip entries marked unsupported on
             // the server side (mostly client-only mods like Sodium).
             foreach ($manifest['files'] as $entry) {
@@ -232,14 +237,26 @@ class ModpackInstallerService
                 foreach ($listing as $entry) {
                     $name = $entry['name'] ?? null;
                     if (!$name) continue;
+
+                    // Modpack overrides should win — delete the existing
+                    // target (file or directory) before renaming the new
+                    // one in. Without this the rename fails on conflict
+                    // and stale configs from the previous pack persist.
+                    try {
+                        $files->deleteFiles('/', [$name]);
+                    } catch (\Throwable $e) {
+                        // No existing entry, or delete refused — fine, the
+                        // rename below will succeed if the slot is empty.
+                    }
+
                     try {
                         $files->renameFiles('/', [[
                             'from' => ltrim($sourcePath, '/') . '/' . $name,
                             'to' => $name,
                         ]]);
                     } catch (\Throwable $e) {
-                        // Conflict — entry already exists in server root.
-                        // Logged but not fatal; user can resolve manually.
+                        // Genuine rename failure (permissions, etc.) — log
+                        // but keep walking the rest of the overrides.
                         report($e);
                     }
                 }
@@ -266,5 +283,33 @@ class ModpackInstallerService
         $base = preg_replace('/\.(mrpack|zip|jar)$/i', '', $file);
         $base = preg_replace('/[-_][vV]?\d+(\.\d+)*.*$/', '', $base);
         return $base ?: $file;
+    }
+
+    /**
+     * Empty the contents of a directory, leaving the directory itself in
+     * place. Silent if the directory doesn't exist (the next pull will
+     * create it).
+     */
+    private function wipeDirContents(\Pterodactyl\Repositories\Wings\DaemonFileRepository $files, string $dir): void
+    {
+        try {
+            $entries = $files->getDirectory($dir);
+        } catch (\Throwable $e) {
+            return; // dir doesn't exist yet
+        }
+
+        $names = [];
+        foreach ($entries as $e) {
+            $name = is_array($e) ? ($e['name'] ?? null) : null;
+            if (is_string($name) && $name !== '') $names[] = $name;
+        }
+        if (empty($names)) return;
+
+        try {
+            $files->deleteFiles($dir, $names);
+        } catch (\Throwable $e) {
+            // Best-effort — don't fail the whole extract over leftover files.
+            report($e);
+        }
     }
 }

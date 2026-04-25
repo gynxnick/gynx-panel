@@ -12,6 +12,7 @@ use Pterodactyl\Models\Server;
 use Pterodactyl\Models\ServerEggSwitchOverride;
 use Pterodactyl\Models\ServerVariable;
 use Pterodactyl\Models\User;
+use Pterodactyl\Repositories\Wings\DaemonFileRepository;
 use Pterodactyl\Services\Servers\ReinstallServerService;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -27,6 +28,7 @@ class EggSwitcherService
     public function __construct(
         private ConnectionInterface $connection,
         private ReinstallServerService $reinstallServerService,
+        private DaemonFileRepository $daemonFiles,
     ) {
     }
 
@@ -239,6 +241,15 @@ class EggSwitcherService
                 'started_at' => Carbon::now(),
             ])->save();
 
+            // Wipe the server root when the rule says we don't preserve
+            // files. Pterodactyl's reinstall just re-runs the install
+            // script — it doesn't touch existing data on its own — so the
+            // old game's mods/configs/world would otherwise leak into the
+            // new egg.
+            if (!$policy->preservesFiles) {
+                $this->wipeServerRoot($server);
+            }
+
             // Dispatch the reinstall. Wings pulls the (new) image + runs the
             // new egg's install script.
             try {
@@ -273,5 +284,32 @@ class EggSwitcherService
         $unlockAt = $lastSwitchAt->copy()->addMinutes($cooldownMinutes);
         $now = Carbon::now();
         return $now->gte($unlockAt) ? 0 : $now->diffInSeconds($unlockAt);
+    }
+
+    /**
+     * Delete every top-level entry in the server root. Wings rename/delete
+     * works on directories as a unit, so listing the root and dispatching
+     * one delete call removes the whole tree. Failures here are logged but
+     * not fatal — we'd rather complete the switch with a partial wipe than
+     * leave the server in INSTALLING-without-reinstall purgatory.
+     */
+    private function wipeServerRoot(Server $server): void
+    {
+        try {
+            $files = $this->daemonFiles->setServer($server);
+            $entries = $files->getDirectory('/');
+            $names = [];
+            foreach ($entries as $e) {
+                $name = is_array($e) ? ($e['name'] ?? null) : null;
+                if (is_string($name) && $name !== '') $names[] = $name;
+            }
+            if (!empty($names)) {
+                $files->deleteFiles('/', $names);
+            }
+        } catch (\Throwable $e) {
+            // Log but continue — the install script will still run, even if
+            // some leftover files end up coexisting with the new egg.
+            report($e);
+        }
     }
 }
