@@ -9,6 +9,8 @@ import Console from '@/components/server/console/Console';
 import StatGraphs from '@/components/server/console/StatGraphs';
 import PowerButtons from '@/components/server/console/PowerButtons';
 import ServerDetailsBlock from '@/components/server/console/ServerDetailsBlock';
+import PlayerManagerPanel from '@/components/server/console/PlayerManagerPanel';
+import RustWipePanel from '@/components/server/console/RustWipePanel';
 import { Alert } from '@/components/elements/alert';
 
 export type PowerAction = 'start' | 'stop' | 'restart' | 'kill';
@@ -78,6 +80,14 @@ const ServerConsoleContainer = () => {
                 <Spinner.Suspense>
                     <StatGraphs />
                 </Spinner.Suspense>
+            </div>
+
+            {/* 4. Game-specific tools. PlayerManagerPanel auto-hides on
+                eggs we don't have a command set for (e.g. Discord bots);
+                RustWipePanel only renders on Rust eggs. */}
+            <div className={'grid grid-cols-1 gap-4 mb-6'}>
+                <PlayerManagerPanel />
+                <RustWipePanel />
             </div>
 
             <Features enabled={eggFeatures} />
