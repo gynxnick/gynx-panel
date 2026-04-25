@@ -15,6 +15,24 @@
 @section('content')
     <div class="row">
         <div class="col-xs-12">
+            <div class="alert alert-info" style="margin-bottom: 16px;">
+                <strong><i class="fa fa-info-circle"></i> Heads up — most edits here are live, but two things require a rebuild.</strong>
+                <ul style="margin: 6px 0 0 18px; padding: 0;">
+                    <li>
+                        Saved values become live for new page loads as soon as you hit <em>Save branding</em>. Logged-in users
+                        may need a hard refresh (<kbd>Ctrl+Shift+R</kbd>) to clear the bundled <code>SiteConfiguration</code>.
+                    </li>
+                    <li>
+                        If you change a <strong>default</strong> value (i.e. you edit the source code, not the form), or add a
+                        new field, the panel must be rebuilt: <code>yarn build:production</code> on the server.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12">
             <div class="box box-primary">
                 <div class="box-header with-border">
                     <h3 class="box-title">Panel text + logo</h3>

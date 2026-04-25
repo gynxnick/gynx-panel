@@ -40,14 +40,19 @@
         --gynx-status-w:   #FBBF24; /* yellow */
         --gynx-status-c:   #EF4444; /* red */
 
-        /* text */
-        --gynx-text:       #E5E7EB;
-        --gynx-text-dim:   #9CA3AF;
-        --gynx-text-mute:  #6B7280;
+        /* text — bumped for WCAG AA on the void background.
+           text-mute was #6B7280 (3.7:1 — fails AA).
+           text-dim was #9CA3AF (6.7:1 — passed but felt washed out next
+           to icons and chips). */
+        --gynx-text:       #ECEEF2;
+        --gynx-text-dim:   #B6BDC9;  /* ~9:1 on void */
+        --gynx-text-mute:  #8E96A2;  /* ~5.5:1 on void — passes AA */
 
-        /* structural lines — neutral, NOT purple */
-        --gynx-edge:       rgba(255, 255, 255, 0.05);
-        --gynx-edge-2:     rgba(255, 255, 255, 0.08);
+        /* structural lines — neutral, NOT purple. Lifted from 5/8% to 8/12%
+           so cards and inputs read as clearly bordered without stealing
+           visual weight from the actual colored accents. */
+        --gynx-edge:       rgba(255, 255, 255, 0.08);
+        --gynx-edge-2:     rgba(255, 255, 255, 0.12);
 
         /* hover-only glows */
         --gynx-glow-p:     0 0 0 1px rgba(124, 58, 237, 0.35), 0 10px 28px -10px rgba(124, 58, 237, 0.45);
@@ -77,6 +82,15 @@
         font-family: 'Space Grotesk', 'Inter', sans-serif;
         letter-spacing: -0.01em;
         color: var(--gynx-text);
+    }
+
+    /* Browser-default placeholder is way too dim on dark surfaces.
+       This sets a single source of truth so every input/textarea reads
+       cleanly without each component having to opt in. */
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--gynx-text-mute);
+        opacity: 1;
     }
 
     /* Scrollbars — neutral, not gradient, unless hovered. */
