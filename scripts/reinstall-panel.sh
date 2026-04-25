@@ -80,10 +80,24 @@ confirm() {
     [[ "$ans" =~ ^[Yy] ]]
 }
 
-# Read a key from a .env-style file. Strips quotes around the value.
+# Read a key from a .env-style file the way Laravel does:
+#   - Strip surrounding double or single quotes
+#   - For double-quoted values, unescape \" and \\ (Laravel honors these)
+#   - Single-quoted values are literal (no unescaping)
+# Without the unescape pass, passwords containing a literal " character
+# get truncated, which presents as a confusing 1045 access-denied later.
 env_get() {
     local file=$1 key=$2
-    grep -E "^${key}=" "$file" 2>/dev/null | tail -1 | cut -d= -f2- | sed -E 's/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/'
+    local raw
+    raw=$(grep -E "^${key}=" "$file" 2>/dev/null | tail -1 | cut -d= -f2-)
+    if [[ "$raw" =~ ^\".*\"$ ]]; then
+        raw="${raw#\"}"; raw="${raw%\"}"
+        raw="${raw//\\\"/\"}"
+        raw="${raw//\\\\/\\}"
+    elif [[ "$raw" =~ ^\'.*\'$ ]]; then
+        raw="${raw#\'}"; raw="${raw%\'}"
+    fi
+    printf '%s' "$raw"
 }
 
 # ---- preflight --------------------------------------------------------------
