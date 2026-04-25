@@ -82,13 +82,13 @@ const BrandRow = styled.div<{ $collapsed: boolean }>`
 const EyebrowRow = styled.div<{ $collapsed: boolean }>`
     ${tw`px-4 pt-5 pb-1`};
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 10px;
-    letter-spacing: 0.22em;
+    font-size: 11px;
+    letter-spacing: 0.18em;
     text-transform: lowercase;
-    color: var(--gynx-text-mute);
-    font-weight: 500;
-    opacity: ${({ $collapsed }) => ($collapsed ? 0 : 1)};
-    height: ${({ $collapsed }) => ($collapsed ? 14 : 24)}px;
+    color: var(--gynx-text-dim);
+    font-weight: 600;
+    opacity: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? 0 : 1)};
+    height: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? 14 : 26)}px;
     transition: opacity .18s ease, height .2s ease;
     display: flex;
     align-items: center;
@@ -107,11 +107,12 @@ const itemBase = css`
     ${tw`relative flex items-center no-underline mx-2 px-3 py-2 rounded-lg`};
     gap: 12px;
     min-height: 40px;
-    color: var(--gynx-text-dim);
-    font-size: 13px;
+    color: var(--gynx-text);
+    opacity: 0.82;
+    font-size: 13.5px;
     font-weight: 500;
-    letter-spacing: 0.01em;
-    transition: color .18s ease, background .18s ease;
+    letter-spacing: 0.005em;
+    transition: opacity .18s ease, color .18s ease, background .18s ease;
     cursor: pointer;
     border: 0;
     background: transparent;
@@ -121,12 +122,14 @@ const itemBase = css`
     /* Hover = blue tint (per brand rule: blue = secondary interaction) */
     &:hover {
         color: #fff;
+        opacity: 1;
         background: rgba(34, 211, 238, 0.08);
     }
 `;
 
 const activeCss = css`
     color: #fff;
+    opacity: 1;
     background: rgba(124, 58, 237, 0.16);
 
     &::before {
