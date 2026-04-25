@@ -6,6 +6,7 @@ import { useStoreState } from 'easy-peasy';
 import FlashMessageRender from '@/components/FlashMessageRender';
 import LogoMark from '@/components/gynx/LogoMark';
 import { brand } from '@/state/settings';
+import LoginBg from '@/assets/brand/gynx-login-bg.svg';
 
 type Props = React.DetailedHTMLProps<React.FormHTMLAttributes<HTMLFormElement>, HTMLFormElement> & {
     title?: string;
@@ -37,24 +38,13 @@ const BrandPanel = styled.aside`
     width: 100%;
     @media (min-width: 768px) { width: 40%; min-height: 100vh; }
 
-    /* denser iso voxel here than the global body::before (8% vs 3.5%) */
+    /* Hero background: bundled SVG (cubes + circuits + particles) over a
+       deep void base. svg-url-loader emits the asset as a data: URL, so
+       LoginBg below is a string we can drop straight into background. */
     background:
-        radial-gradient(900px 600px at 20% 110%, rgba(124, 58, 237, 0.15), transparent 55%),
-        radial-gradient(700px 500px at 110% -10%, rgba(34, 211, 238, 0.08), transparent 60%),
-        linear-gradient(160deg, #0B0B0F 0%, #12101B 100%);
+        url(${LoginBg}) center / cover no-repeat,
+        #0a0514;
     overflow: hidden;
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='92' viewBox='0 0 80 92'><g stroke='rgba(255,255,255,0.9)' stroke-width='1' fill='none'><path d='M 0 23 L 40 0 L 80 23 L 40 46 Z'/><line x1='0' y1='23' x2='0' y2='69'/><line x1='80' y1='23' x2='80' y2='69'/><line x1='40' y1='46' x2='40' y2='92'/><path d='M 0 69 L 40 92 L 80 69'/></g></svg>");
-        background-size: 80px 92px;
-        opacity: 0.08;
-        mask-image: radial-gradient(ellipse at center, black 40%, transparent 95%);
-        -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 95%);
-        pointer-events: none;
-    }
 `;
 
 const BrandLockup = styled.div`

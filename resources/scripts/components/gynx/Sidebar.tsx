@@ -82,13 +82,13 @@ const BrandRow = styled.div<{ $collapsed: boolean }>`
 const EyebrowRow = styled.div<{ $collapsed: boolean }>`
     ${tw`px-4 pt-5 pb-1`};
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.18em;
+    font-size: 12px;
+    letter-spacing: 0.16em;
     text-transform: lowercase;
-    color: var(--gynx-text-dim);
-    font-weight: 600;
-    opacity: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? 0 : 1)};
-    height: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? 14 : 26)}px;
+    color: var(--gynx-text);
+    font-weight: 700;
+    opacity: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? 0 : 0.95)};
+    height: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? 14 : 28)}px;
     transition: opacity .18s ease, height .2s ease;
     display: flex;
     align-items: center;
