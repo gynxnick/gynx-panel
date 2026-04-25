@@ -33,8 +33,14 @@ import { validate, ValidationError } from './validators';
 
 const Layout = styled.div`
     ${tw`grid gap-4`};
-    grid-template-columns: 280px 1fr;
+    /* Slim the rail to 240px on standard widths; expand it back on huge
+       monitors where there's room for both. The editor pane gets the
+       remaining space (1fr). */
+    grid-template-columns: 240px minmax(0, 1fr);
 
+    @media (min-width: 1600px) {
+        grid-template-columns: 280px minmax(0, 1fr);
+    }
     @media (max-width: 900px) {
         grid-template-columns: 1fr;
     }
@@ -44,8 +50,10 @@ const Rail = styled.aside`
     ${tw`rounded-xl overflow-hidden`};
     background: var(--gynx-surface);
     border: 1px solid var(--gynx-edge);
-    max-height: calc(100vh - 12rem);
+    max-height: calc(100vh - 10rem);
     overflow-y: auto;
+    position: sticky;
+    top: 5rem;
 `;
 
 const GroupHeader = styled.div`
@@ -103,7 +111,11 @@ const Panel = styled.section`
     border: 1px solid var(--gynx-edge);
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 12rem);
+    /* Use most of the viewport height — config editing wants vertical room
+       more than anything else. min-w:0 on the grid track lets the editor
+       shrink properly inside flex without overflow on narrow viewports. */
+    min-height: calc(100vh - 10rem);
+    min-width: 0;
 `;
 
 const PanelHeader = styled.header`
@@ -160,9 +172,18 @@ const ActionButton = styled.button<{ $primary?: boolean; $disabled?: boolean }>`
 const EditorSlot = styled.div`
     flex: 1;
     padding: 12px;
+    min-width: 0;
 
     > div {
-        min-height: 400px;
+        min-height: 600px;
+        height: 100%;
+    }
+
+    /* Codemirror lines were inheriting a small font; bump it for the
+       config editor specifically since users spend a lot of time here. */
+    .CodeMirror {
+        font-size: 14px;
+        line-height: 1.55;
     }
 `;
 
@@ -317,7 +338,7 @@ export default () => {
     const anyFound = existing.size > 0;
 
     return (
-        <ServerContentBlock title={'Configs'}>
+        <ServerContentBlock title={'Configs'} wide>
             <FlashMessageRender byKey={'configs'} css={tw`mb-4`} />
 
             {!anyFound ? (
