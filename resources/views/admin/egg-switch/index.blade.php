@@ -87,6 +87,19 @@
                             </div>
                         </div>
                         <div class="row">
+                            <div class="col-md-12 form-group">
+                                <label>Quick-fill from Modrinth</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control modrinth-slug-input"
+                                           placeholder="modrinth project slug — e.g. paper, fabric-loader, sodium, atm10">
+                                    <span class="input-group-btn">
+                                        <button type="button" class="btn btn-default modrinth-fetch-btn">Fetch icon &amp; banner</button>
+                                    </span>
+                                </div>
+                                <p class="text-muted small modrinth-status">Fills in both URL fields below from <code>api.modrinth.com</code>. Slug is whatever's after <code>modrinth.com/{type}/</code>.</p>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6 form-group">
                                 <label>Icon URL</label>
                                 <input type="url" name="icon_url" class="form-control" maxlength="2048"
@@ -248,6 +261,58 @@
                 sourceSel.addEventListener('change', refreshTargetOptions);
                 refreshTargetOptions();
             }
+
+            // Modrinth quick-fill: scoped per form so multiple instances work.
+            // Hits api.modrinth.com directly (CORS allowed on read endpoints)
+            // and writes the icon_url + banner_url inputs in the same form.
+            document.querySelectorAll('.modrinth-fetch-btn').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    const form = btn.closest('form');
+                    if (!form) return;
+                    const slugInput = form.querySelector('.modrinth-slug-input');
+                    const status = form.querySelector('.modrinth-status');
+                    const iconInput = form.querySelector('input[name="icon_url"]');
+                    const bannerInput = form.querySelector('input[name="banner_url"]');
+                    const slug = (slugInput.value || '').trim().toLowerCase();
+                    if (!slug) {
+                        status.innerHTML = '<span style="color:#dd4b39">Enter a Modrinth slug first.</span>';
+                        return;
+                    }
+                    status.innerHTML = '<span class="text-muted">Fetching from Modrinth…</span>';
+                    btn.disabled = true;
+                    try {
+                        const res = await fetch('https://api.modrinth.com/v2/project/' + encodeURIComponent(slug), {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        if (res.status === 404) {
+                            status.innerHTML = '<span style="color:#dd4b39">No Modrinth project named &quot;' + slug + '&quot;.</span>';
+                            return;
+                        }
+                        if (!res.ok) {
+                            status.innerHTML = '<span style="color:#dd4b39">Modrinth returned HTTP ' + res.status + '.</span>';
+                            return;
+                        }
+                        const data = await res.json();
+                        if (data.icon_url) {
+                            iconInput.value = data.icon_url;
+                        }
+                        const gallery = Array.isArray(data.gallery) ? data.gallery : [];
+                        // Prefer the featured gallery image, else the first one.
+                        const banner = gallery.find(function (g) { return g.featured; }) || gallery[0];
+                        if (banner && banner.url) {
+                            bannerInput.value = banner.url;
+                        }
+                        const parts = ['Loaded ' + (data.title || slug) + '.'];
+                        if (!data.icon_url) parts.push('No icon on Modrinth.');
+                        if (!banner) parts.push('No gallery image — set the banner manually.');
+                        status.innerHTML = '<span style="color:#5cb85c">' + parts.join(' ') + ' Save to apply.</span>';
+                    } catch (e) {
+                        status.innerHTML = '<span style="color:#dd4b39">Network error: ' + (e.message || e) + '</span>';
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
+            });
         });
     </script>
 @endsection
