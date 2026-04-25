@@ -28,27 +28,26 @@ const useRotatingTagline = (taglines: string[], intervalMs = 5500) => {
 
 const Shell = styled.div`
     ${tw`min-h-screen w-full flex flex-col md:flex-row`};
-    background: var(--gynx-void);
+    background: #0a0514;
     position: relative;
     z-index: 1;
+    overflow: hidden;
+    isolation: isolate;
 `;
 
 const BrandPanel = styled.aside`
     ${tw`relative flex flex-col items-center justify-center md:items-start md:justify-between p-8 md:p-12`};
     width: 100%;
     @media (min-width: 768px) { width: 40%; min-height: 100vh; }
-    background: #0a0514;
-    overflow: hidden;
-    isolation: isolate;
 `;
 
 /**
- * Hero artwork rendered as an absolutely-positioned <img> inside the
- * brand panel. We render it as an element rather than as a CSS
- * background-image because svg-url-loader emits a url-encoded data URL
- * that contains characters CSS parsers don't always handle cleanly when
- * inlined via styled-components template literals — same SVG, but as
- * an <img> the browser parses the URL directly with no escaping risk.
+ * Hero artwork rendered as an absolutely-positioned <img> spanning the
+ * whole shell — both the brand panel and the form side. We use an
+ * <img> rather than a CSS background-image because svg-url-loader emits
+ * a url-encoded data URL whose special characters CSS parsers don't
+ * always handle cleanly inside a styled-components template literal.
+ * As an <img src=...> the browser parses the URL directly, no risk.
  */
 const BrandArt = styled.img`
     position: absolute;
@@ -307,8 +306,8 @@ export default forwardRef<HTMLFormElement, Props>(({ title, children, ...props }
 
     return (
         <Shell>
+            <BrandArt src={LoginBg} alt={''} aria-hidden />
             <BrandPanel>
-                <BrandArt src={LoginBg} alt={''} aria-hidden />
                 <BrandLockup aria-label={brandCfg.siteName}>
                     <LogoMark size={72} url={brandCfg.logoUrl} alt={brandCfg.siteName} />
                 </BrandLockup>
