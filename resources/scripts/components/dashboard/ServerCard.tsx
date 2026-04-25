@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components/macro';
 import tw from 'twin.macro';
@@ -154,19 +154,31 @@ export const ServerCard: React.FC<Props> = ({ server }) => {
     const cpuSeries = useSeries({ capacity: SPARK_CAPACITY });
     const memSeries = useSeries({ capacity: SPARK_CAPACITY });
 
+    // useRef so the in-flight flag survives across effect re-runs. Without
+    // this, a slow /resources response (panel proxy can take 10–20s) lets
+    // the next 10s interval fire a second request before the first finishes,
+    // and so on — the browser's per-origin slot limit is exhausted within
+    // seconds and you get a flood of ERR_INSUFFICIENT_RESOURCES + canceled
+    // requests.
+    const inFlightRef = useRef(false);
+
     useEffect(() => {
         if (isSuspended) return;
         let mounted = true;
         const poll = async () => {
+            if (!mounted || inFlightRef.current) return;
+            inFlightRef.current = true;
             try {
                 const data = await getServerResourceUsage(server.uuid);
                 if (!mounted) return;
                 setStats(data);
-                setIsSuspended(data.isSuspended);
+                if (data.isSuspended !== isSuspended) setIsSuspended(data.isSuspended);
                 cpuSeries.push(data.cpuUsagePercent);
                 memSeries.push(Math.floor(data.memoryUsageInBytes / 1024 / 1024));
             } catch {
                 /* surfaced at the dashboard level */
+            } finally {
+                inFlightRef.current = false;
             }
         };
         poll();
