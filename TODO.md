@@ -93,6 +93,18 @@ Rough budget: ~8–10 focused sessions for the whole Egg Switcher.
 
 ---
 
+## known bugs
+
+- [ ] **Dashboard `ServerCard` remount loop** — symptom: status pill stuck on "connecting" forever, network tab floods with thousands of `/resources` requests within seconds (often hitting the 429 rate limiter and 5xx-ing the panel). Workaround in place at `resources/scripts/components/dashboard/ServerCard.tsx`: module-scoped `INFLIGHT` Set + `NEXT_ALLOWED` Map + `STATS_CACHE` Map keep the request rate bounded and persist last-known stats across remounts so the pill stays accurate. The actual remount loop hasn't been pinpointed.
+  - **What we know**: `/api/client/servers/{uuid}/resources` returns valid data (`object: 'stats'`, `attributes.current_state` populated). Bug is purely client-side — `useState(null)` resets stats on every remount, and the component is being remount-cycled by something upstream.
+  - **What we ruled out**: response shape (verified by hand-fetching from console — clean), polling interval (was 10s, bumped to 15s with no change), in-flight guards via useRef (got reset on every remount).
+  - **Likely culprits to investigate next**: (1) `useSWR` revalidation in `DashboardContainer` swapping the `servers` array reference with each fire and somehow tripping a Suspense / error boundary above `<Pagination>`; (2) the `RouteFader` in `AppShell.tsx` keying on `location.pathname` while `DashboardContainer` calls `window.history.replaceState` on every page change; (3) an upstream React error being swallowed by an error boundary that silently rebuilds the subtree.
+  - **Repro**: on the staging panel with two or more servers, watch DevTools → Network. Inflight rate jumps within seconds even with the cache fix; the cache fix only hides the visible symptom.
+
+- [ ] **Slow `/resources` proxy** — related to the above. Even when a single request makes it through, response time is consistently ~10–20 seconds. That's panel → Wings, not Wings itself (verified by hand-`curl` from the VPS). Probably PHP-FPM / cURL config, possibly DNS resolution latency for the node FQDN. Once the remount loop is fixed, this becomes the next bottleneck.
+
+---
+
 ## explicit non-goals
 
 - Light-theme variant.
