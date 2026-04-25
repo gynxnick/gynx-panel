@@ -154,23 +154,32 @@ export const ServerCard: React.FC<Props> = ({ server }) => {
     const cpuSeries = useSeries({ capacity: SPARK_CAPACITY });
     const memSeries = useSeries({ capacity: SPARK_CAPACITY });
 
-    // useRef so the in-flight flag survives across effect re-runs. Without
-    // this, a slow /resources response (panel proxy can take 10–20s) lets
-    // the next 10s interval fire a second request before the first finishes,
-    // and so on — the browser's per-origin slot limit is exhausted within
-    // seconds and you get a flood of ERR_INSUFFICIENT_RESOURCES + canceled
-    // requests.
+    // Refs scoped to the component lifetime, NOT the effect's lifetime.
+    //   isMountedRef: protects setState calls without being clobbered when
+    //     the polling effect re-runs (which it does here whenever isSuspended
+    //     toggles or the parent re-renders with an unstable server prop —
+    //     either of those was making the response handler bail with the old
+    //     closure's `mounted = false` and the UI stayed at "connecting").
+    //   inFlightRef: prevents the next 10s interval tick from firing a new
+    //     /resources fetch while the previous one is still in flight (panel
+    //     proxy to Wings is sometimes slow → pile-up → ERR_INSUFFICIENT_
+    //     RESOURCES flood).
+    const isMountedRef = useRef(true);
     const inFlightRef = useRef(false);
 
     useEffect(() => {
+        isMountedRef.current = true;
+        return () => { isMountedRef.current = false; };
+    }, []);
+
+    useEffect(() => {
         if (isSuspended) return;
-        let mounted = true;
         const poll = async () => {
-            if (!mounted || inFlightRef.current) return;
+            if (!isMountedRef.current || inFlightRef.current) return;
             inFlightRef.current = true;
             try {
                 const data = await getServerResourceUsage(server.uuid);
-                if (!mounted) return;
+                if (!isMountedRef.current) return;
                 setStats(data);
                 if (data.isSuspended !== isSuspended) setIsSuspended(data.isSuspended);
                 cpuSeries.push(data.cpuUsagePercent);
@@ -183,10 +192,7 @@ export const ServerCard: React.FC<Props> = ({ server }) => {
         };
         poll();
         const id = window.setInterval(poll, POLL_INTERVAL_MS);
-        return () => {
-            mounted = false;
-            window.clearInterval(id);
-        };
+        return () => window.clearInterval(id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [server.uuid, isSuspended]);
 
