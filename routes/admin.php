@@ -39,6 +39,20 @@ Route::group(['prefix' => 'branding'], function () {
 
 /*
 |--------------------------------------------------------------------------
+| Integrations / third-party API keys
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/integrations
+|
+*/
+Route::group(['prefix' => 'integrations'], function () {
+    Route::get('/', [Admin\IntegrationsController::class, 'index'])->name('admin.integrations.index');
+    Route::post('/{key}', [Admin\IntegrationsController::class, 'update'])->name('admin.integrations.update');
+    Route::delete('/{key}', [Admin\IntegrationsController::class, 'destroy'])->name('admin.integrations.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Add-on observability (read + delete across all servers)
 |--------------------------------------------------------------------------
 |

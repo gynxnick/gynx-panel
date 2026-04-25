@@ -4,6 +4,8 @@ namespace Pterodactyl\Services\Addons\Sources;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
+use Pterodactyl\Contracts\Repository\SettingsRepositoryInterface;
+use Pterodactyl\Http\Controllers\Admin\IntegrationsController;
 use Pterodactyl\Services\Addons\AddonSource;
 use Symfony\Component\HttpKernel\Exception\BadGatewayHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -38,11 +40,22 @@ class CurseForgeAdapter implements AddonSource
 
     private ?Client $http = null;
 
+    public function __construct(private SettingsRepositoryInterface $settings)
+    {
+    }
+
+    private function apiKey(): string
+    {
+        // Admin → Integrations panel value wins; .env CURSEFORGE_API_KEY
+        // is the fallback so existing .env-based setups keep working.
+        return IntegrationsController::get($this->settings, 'curseforge_api_key');
+    }
+
     private function client(): Client
     {
         if ($this->http) return $this->http;
 
-        $key = (string) env('CURSEFORGE_API_KEY', '');
+        $key = $this->apiKey();
         if ($key === '') {
             throw new ServiceUnavailableHttpException(null, 'CurseForge API key is not configured.');
         }
@@ -67,7 +80,7 @@ class CurseForgeAdapter implements AddonSource
 
     public function available(): bool
     {
-        return !empty(env('CURSEFORGE_API_KEY'));
+        return $this->apiKey() !== '';
     }
 
     public function supports(string $type): bool

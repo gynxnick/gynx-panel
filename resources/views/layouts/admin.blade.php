@@ -142,6 +142,11 @@
                                 <i class="fa fa-paint-brush"></i> <span>Branding</span>
                             </a>
                         </li>
+                        <li class="{{ ! starts_with(Route::currentRouteName(), 'admin.integrations') ?: 'active' }}">
+                            <a href="{{ route('admin.integrations.index') }}">
+                                <i class="fa fa-plug"></i> <span>Integrations</span>
+                            </a>
+                        </li>
                     </ul>
                 </section>
             </aside>
