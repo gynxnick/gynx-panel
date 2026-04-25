@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components/macro';
 import tw from 'twin.macro';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBars } from '@fortawesome/free-solid-svg-icons';
 import Sidebar from '@/components/gynx/Sidebar';
 import AlertBar from '@/components/gynx/AlertBar';
 import AlertBell from '@/components/gynx/AlertBell';
@@ -100,6 +102,30 @@ const TopStrip = styled.header<{ $scrolled: boolean }>`
         backdrop-filter .25s ease;
 `;
 
+/**
+ * Hamburger trigger for the mobile nav drawer. Hidden on md+ (where the
+ * sidebar is always visible). 44px square hits the iOS minimum touch
+ * target so it stays comfortable on phones.
+ */
+const HamburgerButton = styled.button`
+    ${tw`md:hidden inline-flex items-center justify-center flex-shrink-0`};
+    width: 44px;
+    height: 44px;
+    margin-left: 8px;
+    background: transparent;
+    border: 1px solid var(--gynx-edge-2);
+    border-radius: 10px;
+    color: var(--gynx-text);
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+
+    &:hover, &:focus-visible {
+        background: rgba(124, 58, 237, 0.12);
+        border-color: rgba(124, 58, 237, 0.4);
+        outline: none;
+    }
+`;
+
 const HeaderSlot = styled.div`
     ${tw`flex-1 min-w-0`};
 `;
@@ -148,16 +174,35 @@ export default ({ header, children }: Props) => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
+    // Mobile-only nav drawer. Closes on every route change so deep-linking
+    // through the sidebar feels native. Esc also closes.
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    useEffect(() => { setMobileNavOpen(false); }, [location.pathname]);
+    useEffect(() => {
+        if (!mobileNavOpen) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileNavOpen(false); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [mobileNavOpen]);
+
     return (
         <Shell>
             <BgArt src={DashboardBg} alt={''} aria-hidden />
             <Grain aria-hidden />
-            <Sidebar />
+            <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
             <Main>
                 <Stuck>
                     <AlertBar />
                     {header && (
                         <TopStrip $scrolled={scrolled}>
+                            <HamburgerButton
+                                type={'button'}
+                                aria-label={'open navigation'}
+                                aria-expanded={mobileNavOpen}
+                                onClick={() => setMobileNavOpen((v) => !v)}
+                            >
+                                <FontAwesomeIcon icon={faBars} />
+                            </HamburgerButton>
                             <HeaderSlot>{header}</HeaderSlot>
                             <BellSlot>
                                 <AlertBell />

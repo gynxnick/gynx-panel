@@ -49,13 +49,60 @@ const STORAGE_KEY = 'gynx.sidebar.collapsed';
 
 // ----- styled scaffolding ---------------------------------------------------
 
-const Rail = styled.aside<{ $collapsed: boolean }>`
-    ${tw`hidden md:flex flex-shrink-0 flex-col z-20 h-screen sticky top-0`};
-    width: ${({ $collapsed }) => ($collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH)}px;
+/**
+ * On md+ the rail is the classic sticky sidebar. Below md it switches to a
+ * fixed-position drawer that slides in from the left when $mobileOpen is
+ * true. We never set `display:none` on mobile — instead, we translate it
+ * fully off-screen so the open/close animation runs.
+ */
+const Rail = styled.aside<{ $collapsed: boolean; $mobileOpen: boolean }>`
+    ${tw`flex flex-shrink-0 flex-col`};
     background: var(--gynx-surface-2);
     border-right: 1px solid var(--gynx-edge);
-    transition: width .22s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+    transition:
+        width .22s cubic-bezier(0.4, 0, 0.2, 1),
+        transform .25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Mobile: fixed drawer, full height, slides in from -100% */
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: ${EXPANDED_WIDTH}px;
+    z-index: 40;
+    transform: translateX(${({ $mobileOpen }: { $mobileOpen: boolean }) => ($mobileOpen ? '0' : '-110%')});
+    box-shadow: ${({ $mobileOpen }: { $mobileOpen: boolean }) =>
+        $mobileOpen ? '0 0 50px rgba(0, 0, 0, 0.5)' : 'none'};
+
+    /* md+: classic sticky rail */
+    @media (min-width: 768px) {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        z-index: 20;
+        transform: none;
+        box-shadow: none;
+        width: ${({ $collapsed }: { $collapsed: boolean }) => ($collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH)}px;
+    }
+`;
+
+/**
+ * Backdrop only paints on mobile when the drawer is open. Tapping it
+ * closes the drawer. z-index sits between the rest of the page and the
+ * Rail itself.
+ */
+const Backdrop = styled.div<{ $open: boolean }>`
+    ${tw`md:hidden`};
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: ${({ $open }: { $open: boolean }) => ($open ? 1 : 0)};
+    pointer-events: ${({ $open }: { $open: boolean }) => ($open ? 'auto' : 'none')};
+    transition: opacity .22s ease;
 `;
 
 const Scroll = styled.div`
@@ -249,7 +296,14 @@ const ActionButton: React.FC<ItemProps & { onClick: () => void; ariaLabel?: stri
 
 // ----- main component -------------------------------------------------------
 
-export default () => {
+interface Props {
+    /** Whether the mobile drawer is open. Ignored on md+. */
+    mobileOpen?: boolean;
+    /** Called when the drawer should close (backdrop tap, etc). */
+    onMobileClose?: () => void;
+}
+
+export default ({ mobileOpen = false, onMobileClose }: Props) => {
     const location = useLocation();
     const serverMatch = useRouteMatch<{ id: string }>('/server/:id');
     const serverUrlBase = serverMatch?.url.replace(/\/$/, '');
@@ -325,7 +379,13 @@ export default () => {
     }, [location.pathname, collapsed, serverMatch?.url]);
 
     return (
-        <Rail $collapsed={collapsed} aria-label={'primary navigation'}>
+        <>
+            <Backdrop $open={mobileOpen} onClick={onMobileClose} aria-hidden />
+            <Rail
+                $collapsed={collapsed}
+                $mobileOpen={mobileOpen}
+                aria-label={'primary navigation'}
+            >
             <SpinnerOverlay visible={isLoggingOut} />
 
             {/* brand — full logo lockup (image already contains the wordmark) */}
@@ -408,6 +468,7 @@ export default () => {
                     ariaLabel={'sign out'}
                 />
             </div>
-        </Rail>
+            </Rail>
+        </>
     );
 };
