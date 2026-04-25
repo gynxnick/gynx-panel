@@ -82,11 +82,16 @@ class CurseForgeAdapter implements AddonSource
         $params = [
             'gameId' => self::GAME_ID_MINECRAFT,
             'classId' => self::CLASS_BY_TYPE[$type],
-            'searchFilter' => $query,
             'pageSize' => min(max($limit, 1), 50),
-            'sortField' => 2, // popularity
+            // sortField 2=popularity (best for browse), 6=totalDownloads
+            // (best for empty-query "popular"). Auto-pick based on whether
+            // there's an actual query.
+            'sortField' => trim($query) === '' ? 6 : 2,
             'sortOrder' => 'desc',
         ];
+        if (trim($query) !== '') {
+            $params['searchFilter'] = $query;
+        }
         if ($gameVersion) {
             $params['gameVersion'] = $gameVersion;
         }

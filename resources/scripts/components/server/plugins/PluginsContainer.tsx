@@ -179,17 +179,16 @@ export default () => {
 
     const onQueryChange = (q: string) => {
         setQuery(q);
-        if (q.trim().length < 2) {
-            setResults([]);
-            return;
-        }
+        // Empty query is fine — sources fall back to a popular/downloads
+        // browse so the page is never blank.
         runSearch(q.trim(), source);
     };
 
-    // Re-run when the source changes while there's an active query.
+    // Re-run on source change AND on first mount, so the page populates
+    // with popular plugins before the user types anything.
     useEffect(() => {
-        if (query.trim().length >= 2) runSearch(query.trim(), source);
-    }, [source]);
+        runSearch(query.trim(), source);
+    }, [source, uuid]);
 
     const onInstall = useCallback(async (hit: PluginSearchHit, versionId?: string) => {
         setInstalling(`${hit.source}:${hit.external_id}`);
@@ -246,9 +245,13 @@ export default () => {
                 <SourceFilter sources={sources} selected={source} onSelect={setSource} />
             </Toolbar>
 
+            {!searching && query.trim() === '' && annotated.length > 0 && (
+                <Hint>Popular on {source} — type to search for something specific.</Hint>
+            )}
+
             {searching ? (
                 <Spinner centered />
-            ) : annotated.length === 0 && query.trim().length >= 2 ? (
+            ) : annotated.length === 0 && query.trim() !== '' ? (
                 <EmptyState
                     size={'section'}
                     icon={<FontAwesomeIcon icon={faSearch} />}
@@ -269,7 +272,7 @@ export default () => {
                     ))}
                 </Grid>
             ) : (
-                <Hint>Type at least 2 characters to search {source}.</Hint>
+                <Hint>No results from {source} right now.</Hint>
             )}
         </>
     );

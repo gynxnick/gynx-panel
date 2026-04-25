@@ -47,7 +47,8 @@ class AddonModsController extends ClientApiController
         $query = trim((string) $request->query('q', ''));
         $gameVersion = $request->query('game_version') ? (string) $request->query('game_version') : null;
 
-        if ($query === '') return new JsonResponse(['data' => []]);
+        // Empty query is intentional — adapters treat it as "browse popular"
+        // and return their downloads-sorted top picks.
 
         return new JsonResponse([
             'data' => $this->installer->search($server, $source, $query, $gameVersion),

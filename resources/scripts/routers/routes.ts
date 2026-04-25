@@ -18,6 +18,8 @@ import {
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 
+import { Server } from '@/api/server/getServer';
+import { getAddonCapabilities } from '@/helpers/serverKind';
 import ServerConsole from '@/components/server/console/ServerConsoleContainer';
 import DatabasesContainer from '@/components/server/databases/DatabasesContainer';
 import ScheduleContainer from '@/components/server/schedules/ScheduleContainer';
@@ -64,6 +66,13 @@ interface RouteDefinition {
 interface ServerRouteDefinition extends RouteDefinition {
     permission: string | string[] | null;
     group?: ServerNavGroup;
+    /**
+     * Optional egg-compat gate. If present and returns false for the current
+     * server, the route is hidden from the sidebar. Hitting the URL directly
+     * still resolves to the component — gate at the page level if you also
+     * want to block direct access.
+     */
+    compatible?: (server: Server) => boolean;
 }
 
 interface Routes {
@@ -84,9 +93,12 @@ export default {
         { path: '/files',     permission: 'file.*',     name: 'Files',     icon: faFolder,       group: 'management', component: FileManagerContainer },
         { path: '/files/:action(edit|new)', permission: 'file.*', name: undefined, component: FileEditContainer },
         { path: '/databases', permission: 'database.*', name: 'Databases', icon: faDatabase,     group: 'management', component: DatabasesContainer },
-        { path: '/plugins',   permission: 'addon.plugin.*', name: 'Plugins', icon: faPuzzlePiece, group: 'management', component: PluginsContainer },
-        { path: '/mods',      permission: 'addon.mod.*',    name: 'Mods',    icon: faCubes,       group: 'management', component: ModsContainer },
-        { path: '/modpacks',  permission: 'addon.modpack.*', name: 'Modpacks', icon: faBoxes, group: 'management', component: ModpacksContainer },
+        { path: '/plugins',   permission: 'addon.plugin.*', name: 'Plugins', icon: faPuzzlePiece, group: 'management', component: PluginsContainer,
+          compatible: (s) => getAddonCapabilities(s).plugins },
+        { path: '/mods',      permission: 'addon.mod.*',    name: 'Mods',    icon: faCubes,       group: 'management', component: ModsContainer,
+          compatible: (s) => getAddonCapabilities(s).mods },
+        { path: '/modpacks',  permission: 'addon.modpack.*', name: 'Modpacks', icon: faBoxes, group: 'management', component: ModpacksContainer,
+          compatible: (s) => getAddonCapabilities(s).modpacks },
         { path: '/configs',   permission: 'file.*',          name: 'Configs',  icon: faWrench, group: 'management', component: ConfigEditorContainer },
 
         // Monitoring

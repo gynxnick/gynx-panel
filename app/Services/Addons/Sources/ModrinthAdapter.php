@@ -57,14 +57,19 @@ class ModrinthAdapter implements AddonSource
         $facets = [['project_type:' . $type]];
         if ($gameVersion) $facets[] = ['versions:' . $gameVersion];
 
+        // Empty query → "browse popular": Modrinth's search endpoint accepts
+        // an empty `query` and we sort by downloads to surface the staples.
+        $params = [
+            'query' => $query,
+            'limit' => min($limit, 30),
+            'facets' => json_encode($facets),
+        ];
+        if (trim($query) === '') {
+            $params['index'] = 'downloads';
+        }
+
         try {
-            $res = $this->http->get('search', [
-                'query' => [
-                    'query' => $query,
-                    'limit' => min($limit, 30),
-                    'facets' => json_encode($facets),
-                ],
-            ]);
+            $res = $this->http->get('search', ['query' => $params]);
         } catch (TransferException $e) {
             throw new BadGatewayHttpException('Modrinth search failed: ' . $e->getMessage());
         }

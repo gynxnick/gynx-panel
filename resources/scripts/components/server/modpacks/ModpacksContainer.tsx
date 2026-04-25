@@ -194,37 +194,61 @@ export default () => {
 
     const onQueryChange = (q: string) => {
         setQuery(q);
-        if (q.trim().length < 2) { setResults([]); return; }
         runSearch(q.trim(), source);
     };
 
     useEffect(() => {
-        if (query.trim().length >= 2) runSearch(query.trim(), source);
-    }, [source]);
+        runSearch(query.trim(), source);
+    }, [source, uuid]);
 
     const onInstall = useCallback(async (hit: PluginSearchHit, versionId?: string) => {
         const ok = window.confirm(
-            `Download "${hit.name}" into /modpacks/?\n\n` +
-            `This only downloads the archive. It does NOT extract it or overwrite your current files. ` +
-            `Create a backup first if you plan to swap in the modpack's mods/configs manually.`,
+            `Install "${hit.name}"?\n\n` +
+            `This will:\n` +
+            `  1. Download the .mrpack to /modpacks/\n` +
+            `  2. Pull every server-side mod into /mods/\n` +
+            `  3. Lift overrides (configs, scripts, resources) into the server root\n\n` +
+            `Stop the server first and back up your world / configs if there's anything you can't afford to lose.`,
         );
         if (!ok) return;
 
         setInstalling(`${hit.source}:${hit.external_id}`);
         clearFlashes('modpacks');
         try {
-            await installModpack(uuid, {
+            const created = await installModpack(uuid, {
                 source: hit.source,
                 external_id: hit.external_id,
                 ...(versionId ? { version_id: versionId } : {}),
             });
-            const fresh = await listInstalledModpacks(uuid);
-            setInstalled(fresh);
-            addFlash({
-                key: 'modpacks',
-                type: 'success',
-                message: `Downloaded ${hit.name} to /modpacks/. Extract via the File Manager to proceed.`,
-            });
+
+            // Refresh so the new "downloaded" row appears immediately even
+            // if extract takes a minute. We chain extract straight after.
+            const afterDownload = await listInstalledModpacks(uuid);
+            setInstalled(afterDownload);
+
+            const newId = created?.id as number | undefined;
+            if (!newId) {
+                addFlash({
+                    key: 'modpacks',
+                    type: 'success',
+                    message: `Downloaded ${hit.name} to /modpacks/. Extract from the Downloaded tab to finish.`,
+                });
+                return;
+            }
+
+            try {
+                const extracted = await extractInstalledModpack(uuid, newId);
+                setInstalled((prev) => prev.map((x) => (x.id === newId ? { ...x, status: extracted.status } : x)));
+                addFlash({
+                    key: 'modpacks',
+                    type: 'success',
+                    message: `Installed ${hit.name}. Mod downloads are queued in Wings — check /mods/ in a minute.`,
+                });
+            } catch (extractErr) {
+                clearAndAddHttpError({ key: 'modpacks', error: extractErr });
+                // Keep the row visible; user can retry extract from the Downloaded tab.
+                try { setInstalled(await listInstalledModpacks(uuid)); } catch { /* ignore */ }
+            }
         } catch (e) {
             clearAndAddHttpError({ key: 'modpacks', error: e });
         } finally {
@@ -286,9 +310,9 @@ export default () => {
             <Banner>
                 <BannerIcon icon={faExclamationTriangle} />
                 <div>
-                    <strong>Modpacks download to <code>/modpacks/</code> first.</strong>{' '}
-                    Once downloaded, hit <em>Extract</em> on the Downloaded tab — we'll walk the manifest, pull every server-side mod into <code>/mods/</code>, and copy <code>overrides/</code> into the server root.
-                    Stop the server and back up your world / configs first.
+                    <strong>Install runs the full pipeline: download → extract → mod fan-out.</strong>{' '}
+                    The .mrpack lands in <code>/modpacks/</code>, server-side mods go to <code>/mods/</code>, and <code>overrides/</code> contents lift into the server root.
+                    Stop the server and back up your world / configs first — extract <em>will</em> overwrite matching files.
                 </div>
             </Banner>
 
@@ -306,9 +330,13 @@ export default () => {
                 <SourceFilter sources={sources} selected={source} onSelect={setSource} />
             </Toolbar>
 
+            {!searching && query.trim() === '' && annotated.length > 0 && (
+                <Hint>Popular on {source} — type to search for something specific.</Hint>
+            )}
+
             {searching ? (
                 <Spinner centered />
-            ) : annotated.length === 0 && query.trim().length >= 2 ? (
+            ) : annotated.length === 0 && query.trim() !== '' ? (
                 <EmptyState
                     size={'section'}
                     icon={<FontAwesomeIcon icon={faSearch} />}
@@ -329,7 +357,7 @@ export default () => {
                     ))}
                 </Grid>
             ) : (
-                <Hint>Type at least 2 characters to search {source}.</Hint>
+                <Hint>No results from {source} right now.</Hint>
             )}
         </>
     );

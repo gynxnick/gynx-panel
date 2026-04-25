@@ -39,14 +39,16 @@ class HangarAdapter implements AddonSource
     {
         $this->assertPlugin($type);
 
+        // Empty query is fine here — Hangar returns the top projects sorted
+        // by downloads, exactly the "browse popular" behaviour we want.
+        $params = [
+            'limit' => min($limit, 25),
+            'sort' => '-downloads',
+        ];
+        if (trim($query) !== '') $params['q'] = $query;
+
         try {
-            $res = $this->http->get('projects', [
-                'query' => [
-                    'q' => $query,
-                    'limit' => min($limit, 25),
-                    'sort' => '-downloads',
-                ],
-            ]);
+            $res = $this->http->get('projects', ['query' => $params]);
         } catch (TransferException $e) {
             throw new BadGatewayHttpException('Hangar search failed: ' . $e->getMessage());
         }

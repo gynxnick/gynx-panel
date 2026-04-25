@@ -42,13 +42,28 @@ class SpigotAdapter implements AddonSource
     {
         $this->assertPlugin($type);
 
+        // SpiGet's /search/resources/{q} endpoint requires a non-empty query.
+        // For empty-query "browse popular" we hit /resources sorted by
+        // downloads instead — same response shape so the mapper below
+        // doesn't need to branch.
+        $fields = 'id,name,tag,downloads,icon,file,author,external,testedVersions';
         try {
-            $res = $this->http->get('search/resources/' . rawurlencode($query), [
-                'query' => [
-                    'size' => min($limit, 25),
-                    'fields' => 'id,name,tag,downloads,icon,file,author,external,testedVersions',
-                ],
-            ]);
+            if (trim($query) === '') {
+                $res = $this->http->get('resources', [
+                    'query' => [
+                        'size' => min($limit, 25),
+                        'sort' => '-downloads',
+                        'fields' => $fields,
+                    ],
+                ]);
+            } else {
+                $res = $this->http->get('search/resources/' . rawurlencode($query), [
+                    'query' => [
+                        'size' => min($limit, 25),
+                        'fields' => $fields,
+                    ],
+                ]);
+            }
         } catch (TransferException $e) {
             throw new BadGatewayHttpException('SpigotMC search failed: ' . $e->getMessage());
         }

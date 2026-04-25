@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useRouteMatch } from 'react-router-dom';
 import styled, { css } from 'styled-components/macro';
 import tw from 'twin.macro';
@@ -15,8 +15,6 @@ import {
     faUser,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
-import Can from '@/components/elements/Can';
-
 import { ApplicationStore } from '@/state';
 import { brand } from '@/state/settings';
 import http from '@/api/http';
@@ -25,7 +23,8 @@ import Tooltip from '@/components/elements/tooltip/Tooltip';
 import SearchModal from '@/components/dashboard/search/SearchModal';
 import useEventListener from '@/plugins/useEventListener';
 import LogoMark from '@/components/gynx/LogoMark';
-import routes, { ServerNavGroup } from '@/routers/routes';
+import routes from '@/routers/routes';
+import ServerNavSection from '@/components/gynx/ServerNavSection';
 
 /**
  * gynx.gg — left sidebar v3
@@ -47,13 +46,6 @@ import routes, { ServerNavGroup } from '@/routers/routes';
 const EXPANDED_WIDTH = 240;
 const COLLAPSED_WIDTH = 64;
 const STORAGE_KEY = 'gynx.sidebar.collapsed';
-
-const GROUP_ORDER: ServerNavGroup[] = ['management', 'monitoring', 'config'];
-const GROUP_LABELS: Record<ServerNavGroup, string> = {
-    management: 'manage',
-    monitoring: 'monitor',
-    config: 'config',
-};
 
 // ----- styled scaffolding ---------------------------------------------------
 
@@ -332,18 +324,6 @@ export default () => {
         rail.style.transform = `translateY(${top}px)`;
     }, [location.pathname, collapsed, serverMatch?.url]);
 
-    // Pre-filter the server tabs into their groups so we don't map the whole
-    // array four times in the render.
-    const serverGroupedItems = useMemo(() => {
-        const result: Record<string, typeof routes.server> = {};
-        for (const r of routes.server) {
-            if (!r.name || !serverUrlBase) continue;
-            const g = r.group || 'ungrouped';
-            (result[g] = result[g] || []).push(r);
-        }
-        return result;
-    }, [serverUrlBase]);
-
     return (
         <Rail $collapsed={collapsed} aria-label={'primary navigation'}>
             <SpinnerOverlay visible={isLoggingOut} />
@@ -383,37 +363,11 @@ export default () => {
                     <SearchModal appear visible={searchOpen} onDismissed={() => setSearchOpen(false)} />
                 )}
 
-                {/* contextual: server tabs */}
-                {serverMatch && (
-                    <>
-                        <Divider />
-                        {GROUP_ORDER.map((group) => {
-                            const items = serverGroupedItems[group];
-                            if (!items || items.length === 0) return null;
-                            return (
-                                <React.Fragment key={group}>
-                                    <EyebrowRow $collapsed={collapsed}>{GROUP_LABELS[group]}</EyebrowRow>
-                                    {items.map((route) => {
-                                        const node = (
-                                            <InternalLink
-                                                key={route.path}
-                                                icon={route.icon!}
-                                                label={route.name!}
-                                                to={`${serverUrlBase}${route.path === '/' ? '' : route.path}`}
-                                                exact={route.exact}
-                                                collapsed={collapsed}
-                                            />
-                                        );
-                                        return route.permission ? (
-                                            <Can key={route.path} action={route.permission} matchAny>
-                                                {node}
-                                            </Can>
-                                        ) : node;
-                                    })}
-                                </React.Fragment>
-                            );
-                        })}
-                    </>
+                {/* contextual: server tabs — extracted so it can read
+                    ServerContext (only available inside /server/:id), and so
+                    egg-incompatible install pages get filtered out. */}
+                {serverMatch && serverUrlBase && (
+                    <ServerNavSection serverUrlBase={serverUrlBase} collapsed={collapsed} />
                 )}
 
                 {/* contextual: account tabs */}
