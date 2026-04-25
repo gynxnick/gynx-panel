@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import styled from 'styled-components/macro';
 import getFileContents from '@/api/server/files/getFileContents';
 import { httpErrorToHuman } from '@/api/http';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
@@ -20,6 +21,33 @@ import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import { encodePathSegments, hashToPath } from '@/helpers';
 import { dirname } from 'path';
 import CodemirrorEditor from '@/components/elements/CodemirrorEditor';
+
+/**
+ * Editor surface for the file manager's edit/create flow. Mirrors the
+ * config-editor visual treatment: full viewport width, tall editor pane,
+ * 14px CodeMirror text. The Codemirror itself fills the parent so the
+ * file extends as tall as the surrounding card.
+ */
+const EditorSurface = styled.div`
+    position: relative;
+    background: var(--gynx-surface);
+    border: 1px solid var(--gynx-edge);
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: calc(100vh - 16rem);
+    display: flex;
+    flex-direction: column;
+
+    > div {
+        flex: 1;
+        min-height: 600px;
+    }
+
+    .CodeMirror {
+        font-size: 14px;
+        line-height: 1.55;
+    }
+`;
 
 export default () => {
     const [error, setError] = useState('');
@@ -84,7 +112,7 @@ export default () => {
     }
 
     return (
-        <PageContentBlock>
+        <PageContentBlock wide>
             <FlashMessageRender byKey={'files:view'} css={tw`mb-4`} />
             <ErrorBoundary>
                 <div css={tw`mb-4`}>
@@ -110,7 +138,7 @@ export default () => {
                     save(name);
                 }}
             />
-            <div css={tw`relative`}>
+            <EditorSurface>
                 <SpinnerOverlay visible={loading} />
                 <CodemirrorEditor
                     mode={mode}
@@ -128,7 +156,7 @@ export default () => {
                         }
                     }}
                 />
-            </div>
+            </EditorSurface>
             <div css={tw`flex justify-end mt-4`}>
                 <div css={tw`flex-1 sm:flex-none rounded bg-neutral-900 mr-4`}>
                     <Select value={mode} onChange={(e) => setMode(e.currentTarget.value)}>
