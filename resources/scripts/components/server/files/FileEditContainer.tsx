@@ -23,44 +23,26 @@ import { dirname } from 'path';
 import CodemirrorEditor from '@/components/elements/CodemirrorEditor';
 
 /**
- * Editor surface for the file manager's edit/create flow. Mirrors the
- * config-editor visual treatment: full viewport width, tall editor pane,
- * 14px CodeMirror text. The Codemirror itself fills the parent so the
- * file extends as tall as the surrounding card.
+ * Wrapper for the file edit page. CodemirrorEditor brings its own bordered
+ * card, so this is just a relative-positioned anchor for the SpinnerOverlay
+ * + a height nudge that lets the editor fill more vertical space than its
+ * default `100vh - 20rem`. We override that via specificity instead of
+ * adding our own card on top, which previously created a visible gap
+ * between the two cards' heights.
  */
 const EditorSurface = styled.div`
     position: relative;
-    background: var(--gynx-surface);
-    border: 1px solid var(--gynx-edge);
-    border-radius: 12px;
-    overflow: hidden;
-    /* Fill the available viewport height. The action row below this card
-       (~3.5rem) plus the breadcrumb above (~3rem) plus page padding gets
-       us to ~10rem of chrome to subtract. */
-    height: calc(100vh - 10rem);
-    min-height: 480px;
-    display: flex;
-    flex-direction: column;
 
-    /* CodemirrorEditor's outer wrapper — let it fill the surface. */
+    /* Override CodemirrorEditor's internal EditorContainer height + bump
+       the font for in-page reading. */
     > div {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
+        height: calc(100vh - 12rem) !important;
+        min-height: 480px !important;
     }
-
-    /* Without an explicit height the CodeMirror instance falls back to its
-       default ~300px and the rest of the surface paints as empty space.
-       Force it to fill the wrapper so a 50-line file uses the same surface
-       a 5000-line file does. */
     .CodeMirror {
         height: 100% !important;
-        flex: 1 1 auto;
-        font-size: 14px;
-        line-height: 1.55;
-    }
-    .CodeMirror-scroll {
-        height: 100%;
+        font-size: 14px !important;
+        line-height: 1.55 !important;
     }
 `;
 

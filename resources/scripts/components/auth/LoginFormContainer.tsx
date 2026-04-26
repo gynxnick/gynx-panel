@@ -27,7 +27,7 @@ const useRotatingTagline = (taglines: string[], intervalMs = 5500) => {
 // ----- scaffolding -----------------------------------------------------------
 
 const Shell = styled.div`
-    ${tw`min-h-screen w-full flex flex-col md:flex-row`};
+    ${tw`min-h-screen w-full flex items-center justify-center p-6 md:p-10`};
     background: #0a0514;
     position: relative;
     z-index: 1;
@@ -35,10 +35,36 @@ const Shell = styled.div`
     isolation: isolate;
 `;
 
-const BrandPanel = styled.aside`
-    ${tw`relative flex flex-col items-center justify-center md:items-start md:justify-between p-8 md:p-12`};
-    width: 100%;
-    @media (min-width: 768px) { width: 40%; min-height: 100vh; }
+/**
+ * Brand text used to live in a left column. Moved to corners as
+ * decorative overlay on top of the BrandArt so the login card can
+ * center on the full viewport. Hidden on mobile to keep the form
+ * the focal point at narrow widths.
+ */
+const BrandCorner = styled.div`
+    ${tw`hidden md:flex relative z-10 flex-col items-start gap-3`};
+    position: absolute;
+    top: 32px;
+    left: 32px;
+`;
+
+const BrandFooter = styled.div`
+    ${tw`hidden md:flex relative z-10 items-center gap-4`};
+    position: absolute;
+    bottom: 32px;
+    left: 32px;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gynx-text-mute);
+
+    a {
+        color: var(--gynx-text-dim);
+        text-decoration: none;
+        transition: color .15s ease;
+    }
+    a:hover { color: var(--gynx-text); }
 `;
 
 /**
@@ -76,28 +102,24 @@ const Grain = styled.div`
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 `;
 
-const BrandLockup = styled.div`
-    ${tw`relative z-10 flex items-center mb-8 md:mb-0`};
-`;
-
 const fadeIn = keyframes`
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
 `;
 
 const Tagline = styled.p`
-    ${tw`relative z-10 hidden md:block`};
     max-width: 28ch;
     font-family: 'Space Grotesk', 'Inter', sans-serif;
-    font-size: 32px;
+    font-size: 22px;
     font-weight: 500;
-    line-height: 1.2;
+    line-height: 1.25;
     color: var(--gynx-text);
     margin: 0;
     animation: ${fadeIn} .7s ease-out both;
 `;
 
 const BrandFoot = styled.div`
+    /* legacy — kept defined to avoid breaking other imports; unused here */
     ${tw`relative z-10 hidden md:flex items-center gap-4`};
     font-size: 11px;
     font-family: 'Inter', sans-serif;
@@ -113,11 +135,15 @@ const BrandFoot = styled.div`
     a:hover { color: var(--gynx-text); }
 `;
 
-// ----- form side ------------------------------------------------------------
+// ----- form ----------------------------------------------------------------
 
 const FormSide = styled.div`
-    ${tw`flex-1 flex items-center justify-center p-6 md:p-10`};
-    position: relative;
+    ${tw`relative flex items-center justify-center w-full`};
+    z-index: 2;
+`;
+
+const InCardLogo = styled.div`
+    ${tw`flex justify-center mb-4`};
 `;
 
 const FormCard = styled.div`
@@ -335,26 +361,25 @@ export default forwardRef<HTMLFormElement, Props>(({ title, children, ...props }
         <Shell>
             <BrandArt src={LoginBg} alt={''} aria-hidden />
             <Grain aria-hidden />
-            <BrandPanel>
-                <BrandLockup aria-label={brandCfg.siteName}>
-                    <LogoMark size={72} url={brandCfg.logoUrl} alt={brandCfg.siteName} />
-                </BrandLockup>
-
+            <BrandCorner aria-label={brandCfg.siteName}>
                 <Tagline key={tagline}>{tagline}</Tagline>
+            </BrandCorner>
 
-                <BrandFoot>
-                    <span>© {new Date().getFullYear()} {brandCfg.siteName}</span>
-                    {brandCfg.footerCopy && (
-                        <>
-                            <span aria-hidden>·</span>
-                            <span>{brandCfg.footerCopy}</span>
-                        </>
-                    )}
-                </BrandFoot>
-            </BrandPanel>
+            <BrandFooter>
+                <span>© {new Date().getFullYear()} {brandCfg.siteName}</span>
+                {brandCfg.footerCopy && (
+                    <>
+                        <span aria-hidden>·</span>
+                        <span>{brandCfg.footerCopy}</span>
+                    </>
+                )}
+            </BrandFooter>
 
             <FormSide>
                 <FormCard>
+                    <InCardLogo aria-label={brandCfg.siteName}>
+                        <LogoMark size={56} url={brandCfg.logoUrl} alt={brandCfg.siteName} />
+                    </InCardLogo>
                     {title && <Title>{title}</Title>}
                     <Lede>{brandCfg.authLede}</Lede>
                     <FlashMessageRender css={tw`mb-4`} />
