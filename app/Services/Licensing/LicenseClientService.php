@@ -15,15 +15,14 @@ use Pterodactyl\Contracts\Repository\SettingsRepositoryInterface;
  * the upstream on every page load.
  *
  * Contract (server at gynx.gg, see backend src/app/api/license/validate):
- *   POST {GYNX_LICENSE_API_URL}/validate     (default: https://gynx.gg/api/license)
+ *   POST {GYNX_LICENSE_API_URL}/validate     (default: Netlify deploy — see below)
  *   Body: { key, product: "gynx-panel", instanceId: "<panel hostname>" }
  *
- * Success (200):
- *   { ok: true, data: { valid: true, product, plan, maxServers,
- *                       boundCount, bound, expiresAt } }
+ * Success (200) — payload is flat, no envelope:
+ *   { valid: true, product, plan, maxServers, boundCount, bound, expiresAt }
  *
  * Failure (403):
- *   { ok: false, error: "Invalid license", details: { reason: <see below> } }
+ *   { error: "Invalid license", details: { reason: <see below> } }
  *   reason ∈ { unknown_key | wrong_product | revoked | expired |
  *              server_limit_reached }
  *
@@ -119,7 +118,10 @@ class LicenseClientService
             return $this->status();
         }
 
-        $endpoint = rtrim((string) env('GYNX_LICENSE_API_URL', 'https://gynx.gg/api/license'), '/');
+        // gynx.gg root is the LiteSpeed marketing site — it answers HTTP 200 with HTML
+        // for /api/* paths, which silently masks license calls as transport noise.
+        // The license API lives on the Netlify deploy; pin to that by default.
+        $endpoint = rtrim((string) env('GYNX_LICENSE_API_URL', 'https://extraordinary-gaufre-4b1645.netlify.app/api/license'), '/');
         $http = new Client([
             'base_uri' => $endpoint . '/',
             'timeout' => 8,
@@ -152,8 +154,8 @@ class LicenseClientService
         $code = $res->getStatusCode();
         $body = json_decode((string) $res->getBody(), true) ?: [];
 
-        if ($code === 200 && ($body['ok'] ?? false)) {
-            $data = $body['data'] ?? [];
+        if ($code === 200 && ($body['valid'] ?? false)) {
+            $data = $body;
             $this->settings->set('settings::gynx:license:status', self::STATUS_VALID);
             $this->settings->set('settings::gynx:license:plan', (string) ($data['plan'] ?? ''));
             $this->settings->set('settings::gynx:license:expires_at', (string) ($data['expiresAt'] ?? ''));
