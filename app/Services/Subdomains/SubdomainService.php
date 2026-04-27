@@ -50,10 +50,17 @@ class SubdomainService
 
         $cf = CloudflareDnsProvider::forZone($zone);
 
+        // Cloudflare's `name` field is interpreted relative to the *CF zone*,
+        // not relative to whatever parent domain the admin labeled this entry
+        // with. The CF zone might be "gynx.gg" while the panel is configured
+        // to issue under "test.gynx.gg" — so we always send the full DNS
+        // name and let CF take it as-is.
+        $aFqdn = $hostname . '.' . $zone->domain;
+
         // 1. A record → server's IP. Always created.
         $aPayload = [
             'type' => 'A',
-            'name' => $hostname,
+            'name' => $aFqdn,
             'content' => $allocation->ip,
             'ttl' => 1,
             'proxied' => false,
@@ -67,24 +74,25 @@ class SubdomainService
         // 2. SRV record for Minecraft-style port mapping when port != 25565.
         // Lets users connect to "myserver.play.gynx.gg" without ":2566" on the end.
         if ($this->isMinecraftLike($server) && (int) $allocation->port !== 25565) {
-            $srvName = '_minecraft._tcp.' . $hostname;
+            $srvLocalName = '_minecraft._tcp.' . $hostname;
+            $srvFqdn = $srvLocalName . '.' . $zone->domain;
             $srvPayload = [
                 'type' => 'SRV',
-                'name' => $srvName,
+                'name' => $srvFqdn,
                 'data' => [
                     'service' => '_minecraft',
                     'proto' => '_tcp',
-                    'name' => $hostname,
+                    'name' => $aFqdn,
                     'priority' => 0,
                     'weight' => 5,
                     'port' => (int) $allocation->port,
-                    'target' => $hostname . '.' . $zone->domain . '.',
+                    'target' => $aFqdn . '.',
                 ],
                 'ttl' => 1,
             ];
-            $srvResult = $this->upsertProviderRecord($cf, $zone, $srvName, 'SRV', $srvPayload);
+            $srvResult = $this->upsertProviderRecord($cf, $zone, $srvLocalName, 'SRV', $srvPayload);
             $records[] = $this->persistRecord(
-                $server, $zone, $srvName, 'SRV',
+                $server, $zone, $srvLocalName, 'SRV',
                 json_encode(['port' => (int) $allocation->port]),
                 $srvResult,
                 ['priority' => 0, 'weight' => 5, 'port' => (int) $allocation->port],
