@@ -34,7 +34,7 @@ class LicenseController extends Controller
         return $this->view->make('admin.license.index', [
             'status' => $this->service->status(),
             'key' => $this->service->key(),
-            'apiUrl' => env('GYNX_LICENSE_API_URL', 'https://gynx.gg/api/license'),
+            'apiUrl' => env('GYNX_LICENSE_API_URL', 'https://extraordinary-gaufre-4b1645.netlify.app/api/license'),
         ]);
     }
 
