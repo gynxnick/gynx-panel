@@ -34,6 +34,10 @@ class Permission extends Model
     public const ACTION_ADDON_MODPACK_INSTALL = 'addon.modpack.install';
     public const ACTION_ADDON_MODPACK_DELETE = 'addon.modpack.delete';
 
+    public const ACTION_SUBDOMAIN_READ = 'subdomain.read';
+    public const ACTION_SUBDOMAIN_CREATE = 'subdomain.create';
+    public const ACTION_SUBDOMAIN_DELETE = 'subdomain.delete';
+
     public const ACTION_DATABASE_READ = 'database.read';
     public const ACTION_DATABASE_CREATE = 'database.create';
     public const ACTION_DATABASE_UPDATE = 'database.update';

@@ -147,6 +147,11 @@
                                 <i class="fa fa-plug"></i> <span>Integrations</span>
                             </a>
                         </li>
+                        <li class="{{ ! starts_with(Route::currentRouteName(), 'admin.subdomains') ?: 'active' }}">
+                            <a href="{{ route('admin.subdomains.index') }}">
+                                <i class="fa fa-globe"></i> <span>Subdomains</span>
+                            </a>
+                        </li>
                     </ul>
                 </section>
             </aside>

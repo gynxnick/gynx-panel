@@ -179,4 +179,11 @@ Route::group([
 
     // Shared versions endpoint — used by all three install pickers.
     Route::get('/addons/versions', [Client\Servers\AddonVersionsController::class, 'index']);
+
+    Route::group(['prefix' => '/subdomains'], function () {
+        Route::get('/zones', [Client\Servers\SubdomainController::class, 'zones']);
+        Route::get('/', [Client\Servers\SubdomainController::class, 'index']);
+        Route::post('/', [Client\Servers\SubdomainController::class, 'store']);
+        Route::delete('/{record}', [Client\Servers\SubdomainController::class, 'destroy']);
+    });
 });

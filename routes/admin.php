@@ -53,6 +53,21 @@ Route::group(['prefix' => 'integrations'], function () {
 
 /*
 |--------------------------------------------------------------------------
+| Subdomain Manager — parent zones
+|--------------------------------------------------------------------------
+|
+| Endpoint: /admin/subdomains
+|
+*/
+Route::group(['prefix' => 'subdomains'], function () {
+    Route::get('/', [Admin\SubdomainZonesController::class, 'index'])->name('admin.subdomains.index');
+    Route::post('/', [Admin\SubdomainZonesController::class, 'store'])->name('admin.subdomains.store');
+    Route::post('/{zone}/toggle', [Admin\SubdomainZonesController::class, 'toggle'])->name('admin.subdomains.toggle');
+    Route::delete('/{zone}', [Admin\SubdomainZonesController::class, 'destroy'])->name('admin.subdomains.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Add-on observability (read + delete across all servers)
 |--------------------------------------------------------------------------
 |
