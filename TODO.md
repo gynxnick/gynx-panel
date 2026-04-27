@@ -105,9 +105,61 @@ Rough budget: ~8–10 focused sessions for the whole Egg Switcher.
 
 ---
 
+## major upcoming systems
+
+Each is a multi-session project. Listed roughly in the order I'd ship them, easiest blast-radius first.
+
+### 1. Subdomain Manager (Cloudflare API)
+Replace `123.45.67.89:25565` with `myserver.play.gynx.gg` for users.
+
+- **Backend**: CloudflareAdapter (HTTP client, scoped API token), `subdomain_records` table linking `server_id` ↔ `subdomain` ↔ CF zone+record id, service layer for create/update/delete.
+- **Admin**: page to register parent zones (`play.gynx.gg`) + their CF API tokens (stored via the existing Integrations admin).
+- **User**: server tab → "Domain" → pick from available subdomains, claim one. Show as the connection address on the server card instead of IP:port.
+- **DNS**: A record for the server's IP, plus optional SRV record for Minecraft port-mapping so the user doesn't need a port.
+- Rough budget: 2-3 sessions.
+
+### 2. One-line installer
+Single command that bootstraps either a fresh Pterodactyl + gynx-panel install OR a gynx-panel-only deploy on an existing Pterodactyl.
+
+- Detection: check for existing Pterodactyl install (`/var/www/pterodactyl` or `/etc/pterodactyl/config.yml`).
+- New install path: invokes Pterodactyl's stock installer first, then layers gynx-panel on top via the existing `scripts/reinstall-panel.sh`.
+- Existing install path: jumps straight to the gynx layer.
+- Handles deps (PHP, MariaDB, Composer, Node, Redis, nginx, certbot).
+- Rough budget: 1-2 sessions.
+
+### 3. License Key System (architecture decision needed)
+Internal license/entitlement system, similar to the existing Discord bot key flow.
+
+**Open question**: where does this live?
+  - **Option A**: `gynx.gg` central dashboard (separate Laravel app or service). Panel calls out to validate.
+  - **Option B**: built into the gynx-panel Admin section. Each panel manages its own keys.
+  - **Option C**: hybrid — central dashboard issues keys, each panel validates against it.
+
+Need to pick before any code goes down. Once chosen: key generation/listing UI, per-feature limits, usage tracking, panel-side validation middleware.
+
+### 4. Admin Theme Redesign
+Replaces the current AdminLTE-based admin UI with gynx-branded surfaces.
+
+⚠ **This was previously a non-goal** ("Admin panel redesign (AdminLTE stays)" — see prior section). Reopening it is fine; just acknowledging the policy flip so future sessions don't get confused.
+
+Two paths:
+  - **Pragmatic**: keep AdminLTE structure, replace its CSS with our design tokens (colors, fonts, spacing). 80% visual win for 20% of the work.
+  - **Full rebuild**: port admin to React + our component library. Much bigger; touches every admin Blade template.
+- Rough budget: 1 session for pragmatic, 4-6 for full rebuild.
+
+### 5. Optimization (cross-cutting, ongoing)
+Not a single task — a quality bar applied to every other piece.
+
+- Profile dashboard render churn (the remount loop from "known bugs").
+- Audit `/resources` proxy slowness (panel ↔ Wings).
+- Lazy-load addon installer search results / images (modpack icons).
+- Cache `getServers()` SWR more aggressively + dedupe.
+- Bundle splitting audit (current `bundle.4669cdfe.js` is 556 KiB).
+
+---
+
 ## explicit non-goals
 
 - Light-theme variant.
-- Admin panel redesign (AdminLTE stays).
 - Replacing Chart.js.
 - "Performance mode" toggle (design spec §12) — deferred until the activity pulse feature in §12 is in scope; solo toggle with no feature to toggle adds UI for no benefit yet.
