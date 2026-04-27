@@ -32,6 +32,12 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    {{-- legacy component CSS (bootstrap grid+modal, select2, sweetalert) — gynx overrides come after --}}
+    {!! Theme::css('vendor/bootstrap/bootstrap.min.css?t={cache-version}') !!}
+    {!! Theme::css('vendor/select2/select2.min.css?t={cache-version}') !!}
+    {!! Theme::css('vendor/sweetalert/sweetalert.min.css?t={cache-version}') !!}
+
     {!! Theme::css('css/gynx-admin-shell.css?t={cache-version}') !!}
 </head>
 <body>
@@ -106,9 +112,11 @@
         <div class="main">
             <header class="topstrip">
                 <div class="topstrip__title">
-                    <h1>@yield('header-title')</h1>
-                    @hasSection('header-sub')
-                        <small>@yield('header-sub')</small>
+                    @hasSection('header-title')
+                        <h1>@yield('header-title')</h1>
+                        @hasSection('header-sub')
+                            <small>@yield('header-sub')</small>
+                        @endif
                     @endif
                 </div>
                 <div class="topstrip__actions">
@@ -121,6 +129,13 @@
             </header>
 
             <main class="content">
+                {{-- legacy admin pages still using @section('content-header') for h1 + breadcrumb --}}
+                @hasSection('content-header')
+                    <div class="legacy-content-header">
+                        @yield('content-header')
+                    </div>
+                @endif
+
                 @if (count($errors) > 0)
                     <div class="alert alert--danger">
                         <strong>There was an error validating the data provided.</strong>
@@ -143,6 +158,14 @@
             </main>
         </div>
     </div>
+
+    {{-- legacy JS deps shared across rebuilt admin pages (modals, multi-selects, confirm dialogs) --}}
+    {!! Theme::js('vendor/jquery/jquery.min.js?t={cache-version}') !!}
+    {!! Theme::js('vendor/bootstrap/bootstrap.min.js?t={cache-version}') !!}
+    {!! Theme::js('vendor/select2/select2.full.min.js?t={cache-version}') !!}
+    {!! Theme::js('vendor/sweetalert/sweetalert.min.js?t={cache-version}') !!}
+    {!! Theme::js('js/admin/functions.js?t={cache-version}') !!}
+
     @yield('footer-scripts')
 </body>
 </html>
